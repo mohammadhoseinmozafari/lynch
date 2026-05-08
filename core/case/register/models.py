@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
 from artifact import ModelArtifactPointer
@@ -9,8 +9,8 @@ from metric import MetricBundle
 from hyperparameter import HyperparameterBundle
 from personas import Persona
 
-@dataclass
-class RegisterModelRequest :
+
+class RegisterModelRequest(BaseModel) :
     project_id : UUID
     family_id : UUID
     persona : Persona

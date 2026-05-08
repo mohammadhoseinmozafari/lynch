@@ -1,12 +1,12 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CodeSnapshot (BaseModel) :
-    git_repository : str
-    git_commit_hash : str
+    git_repository : str = Field(min_length=1)
+    git_commit_hash : str = Field (pattern='^[a-f0-9]{7,40}$')
     entry_point : str
     git_branch : Optional[str]
-    uncommmitted_diff : Optional[str]
+    uncommitted_diff : Optional[str]
     training_command : Optional[str]
     code_snapshot_hash : Optional[str]

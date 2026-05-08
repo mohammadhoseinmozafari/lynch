@@ -1,6 +1,7 @@
 from __future__ import annotations
+from datetime import datetime
 from pydantic import BaseModel,Field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from enum import Enum
 from schema import NumericRange
 
@@ -14,7 +15,11 @@ class FType (Enum) :
 
 
 class DataProfileSnapshot (BaseModel) :
-    features : List[FeatureProfile]
+    row_counts : Dict[str, int]
+    feature_stats : List[FeatureProfile]
+    computed_at : Optional[datetime] = None
+    drift_baseline : Optional[bool] = False
+    
 
 
 class FeatureProfile (BaseModel) :
@@ -29,11 +34,12 @@ class NumericStats (BaseStats):
     feature_type : FType = FType('numeric')
     range : Optional[NumericRange] = None
     mean = Optional[float] = None
-    std = Optional [float] = None
+    std = Optional [float] = Field(ge=0.0)
+    quartiles : Optional[Tuple[float, float, float]]
 
 class CategoricalStats (BaseStats) :
     feature_type : FType = FType('categorical')
-    cardinality : Optional[int] = None
+    cardinality : Optional[int] = Field(ge=1.0, default=None)
     top_values : Optional [Dict[str, float]]
 
 

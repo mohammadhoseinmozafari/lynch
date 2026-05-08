@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class ArtifactPointer(BaseModel) : 
     """
@@ -28,9 +28,9 @@ class ArtifactPointer(BaseModel) :
     storage_backend : StorageBackend
     bucket : Optional[str] =None
     key : str
-    checksum : str
-    size_bytes : int
-    framework : str
+    checksum : str = Field(pattern='^[a-f0-9]{64}$')
+    size_bytes : int = Field (gt= 0)
+    framework : str = Field(min_length=1, max_length=255)
     artifact_type : ArtifactType
     manifest : Optional[ArtifactManifest] = None
 
