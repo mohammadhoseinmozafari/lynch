@@ -1,4 +1,8 @@
-from .schema import ArtifactPointer
+from .base import BaseArtifactPointer
+from .dataset import DataArtifactPointer
+from .model import ModelArtifactPointer
 __all__ = [
-    "ArtifactPointer"
+    "BaseArtifactPointer",
+    "DataArtifactPointer",
+    "ModelArtifactPointer"
 ]
