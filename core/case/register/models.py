@@ -1,19 +1,13 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import Optional
 from uuid import UUID
 from artifact import ModelArtifactPointer
 from dataset import DatasetBinding
 from ..code import CodeSnapshot
 from environment import EnvironmentSnapshot
-class Persona(Enum):
-    pass
-class HyperparameterBundle:
-    pass
-class MetricBundle:
-    pass
-
-
+from metric import MetricBundle
+from hyperparameter import HyperparameterBundle
+from personas import Persona
 
 @dataclass
 class RegisterModelRequest :

@@ -1,5 +1,5 @@
 from typing import List
-from base import Persona
+from .models import Persona
 
 class PersonaRegistry :
     def __init__(self, builtin_path : str , db_session = None):

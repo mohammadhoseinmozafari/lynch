@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 
-class Metrics (BaseModel) :
+class MetricBundle (BaseModel) :
     """
     Captures the evaluation metrics of the training run,
     organised by dataset split. This is stored inside 
