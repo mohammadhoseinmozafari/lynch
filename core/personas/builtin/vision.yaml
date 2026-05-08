@@ -1,0 +1,66 @@
+persona: vision
+display_name: "Image DL Researcher"
+description: "For computer vision models: ResNet, ViT, EfficientNet, YOLO"
+icon: "image"
+target_audience: "Deep learning researchers working with image data (classification, object detection, segmentation)"
+
+model_detection:
+  frameworks: ["pytorch", "tensorflow", "keras"]
+  model_types: ["classification", "segmentation", "object_detection"]
+  input_modality: "image"
+  
+recommended_algorithms:
+  local:
+    primary: "INTEGRATED_GRADIENTS"
+    parameters:
+      steps: 50
+      baseline: "zero"  # Black image baseline
+    fallback: "GRAD_CAM"  # Faster, less precise
+    fallback_parameters:
+      target_layer: "auto"  # Auto-detect last conv layer
+  
+  global:
+    primary: "CONCEPT_BASED"
+    algorithm: "TCAV"
+    parameters:
+      significance_threshold: 0.05
+  
+  counterfactuals:
+    enabled: true
+    algorithm: "PERTURBATION_BASED"
+    parameters:
+      segmentation_method: "quickshift"
+      max_segments: 20
+
+strategy_templates:
+  - name: "Real-time saliency maps"
+    type: REALTIME
+    trigger:
+      sampling_rate: 0.05  # Lower because GPU is expensive
+    algorithms: ["INTEGRATED_GRADIENTS"]
+    scope: "LOCAL"
+    
+  - name: "Weekly concept analysis"
+    type: BATCH_SCHEDULED
+    trigger:
+      schedule: "0 4 * * SUN"
+      dataset_split: "validation"
+    algorithms: ["CONCEPT_BASED"]
+    scope: "GLOBAL"
+
+validation_rules:
+  schema:
+    require_feature_descriptions: false  # Raw pixels don't need descriptions
+    allow_raw_feature_names: true  # Image models often have raw input names
+    require_expected_ranges: false  # Pixels are 0-255 by definition
+    
+compute_profile:
+  preferred_device: "gpu"
+  min_gpu_memory_mb: 4096
+  max_memory_mb: 16384
+  batch_size_hint: 32
+
+visualization_hints:
+  primary_plot: "saliency_overlay"
+  secondary_plots: ["concept_activation", "layer_attribution"]
+  feature_table_columns: ["concept_name", "importance", "significance"]

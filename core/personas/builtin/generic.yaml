@@ -1,0 +1,39 @@
+persona: generic
+display_name: "Generic"
+description: "Fallback persona for unknown model types. Uses model-agnostic methods."
+icon: "question"
+target_audience: "Any developer who hasn't specified a persona"
+
+model_detection:
+  frameworks: ["*"]
+  model_types: ["*"]
+  
+recommended_algorithms:
+  local:
+    primary: "LIME"  # Most model-agnostic
+    parameters:
+      num_samples: 3000
+    fallback: "SHAP"
+    fallback_parameters:
+      explainer: "KernelExplainer"
+      nsamples: 100
+
+strategy_templates:
+  - name: "Basic LIME on demand"
+    type: ON_DEMAND
+    algorithms: ["LIME"]
+    scope: "LOCAL"
+
+validation_rules:
+  schema:
+    require_feature_descriptions: false
+    warn_on_raw_names: true
+
+compute_profile:
+  preferred_device: "cpu"
+  max_memory_mb: 2048
+
+visualization_hints:
+  primary_plot: "feature_importance_bar"
+  secondary_plots: []
+  feature_table_columns: ["name", "importance"]

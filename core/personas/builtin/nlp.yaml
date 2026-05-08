@@ -1,0 +1,58 @@
+persona: nlp
+display_name: "NLP Researcher"
+description: "For text models: BERT, GPT, LSTM, transformer-based models"
+icon: "text"
+target_audience: "NLP researchers working with text classification, NER, sentiment analysis"
+
+model_detection:
+  frameworks: ["pytorch", "tensorflow", "transformers", "spacy"]
+  model_types: ["classification", "token_classification", "text_generation"]
+  input_modality: "text"
+  
+recommended_algorithms:
+  local:
+    primary: "LIME"
+    parameters:
+      num_samples: 2000
+      num_features: 10
+      mask_string: "[MASK]"
+    fallback: "SHAP"
+    fallback_parameters:
+      explainer: "PartitionExplainer"  # Handles text well
+  
+  global:
+    primary: "SHAP"
+    scope: "GLOBAL"
+    parameters:
+      max_display: 30  # More tokens to show
+      
+strategy_templates:
+  - name: "Real-time text explanation"
+    type: REALTIME
+    trigger:
+      sampling_rate: 0.1
+    algorithms: ["LIME"]
+    scope: "LOCAL"
+    
+  - name: "Weekly token importance"
+    type: BATCH_SCHEDULED
+    trigger:
+      schedule: "0 3 * * WED"
+      dataset_split: "validation"
+    algorithms: ["SHAP"]
+    scope: "GLOBAL"
+
+validation_rules:
+  schema:
+    require_feature_descriptions: false  # Text tokens
+    allow_raw_feature_names: true
+    
+compute_profile:
+  preferred_device: "gpu"
+  max_memory_mb: 8192
+  batch_size_hint: 64
+
+visualization_hints:
+  primary_plot: "highlighted_text"
+  secondary_plots: ["token_importance", "attention_heatmap"]
+  feature_table_columns: ["token", "importance", "context"]

@@ -1,0 +1,70 @@
+persona: tabular
+display_name: "Tabular Data Scientist"
+description: "For structured data models: XGBoost, LightGBM, CatBoost, sklearn ensembles"
+icon: "table"
+target_audience: "Data scientists working with tabular data (credit scoring, churn prediction, fraud detection)"
+
+model_detection:
+  frameworks: ["scikit-learn", "xgboost", "lightgbm", "catboost"]
+  model_types: ["classification", "regression"]
+  
+recommended_algorithms:
+  local:
+    primary: "SHAP"
+    parameters:
+      explainer: "TreeExplainer"  # Fast, exact for tree models
+      feature_perturbation: "tree_path_dependent"
+    fallback: "LIME"  # If model isn't tree-based
+    fallback_parameters:
+      num_samples: 5000
+  
+  global:
+    primary: "SHAP"
+    scope: "GLOBAL"
+    parameters:
+      max_display: 20
+      plot_type: "beeswarm"
+  
+  counterfactuals:
+    enabled: true
+    algorithm: "DiCE"
+    parameters:
+      diversity_weight: 0.7
+      proximity_weight: 0.5
+
+strategy_templates:
+  - name: "Real-time SHAP sampling"
+    type: REALTIME
+    trigger:
+      sampling_rate: 0.1
+    algorithms: ["SHAP"]
+    scope: "LOCAL"
+    
+  - name: "Weekly global feature importance"
+    type: BATCH_SCHEDULED
+    trigger:
+      schedule: "0 2 * * MON"
+      dataset_split: "validation"
+    algorithms: ["SHAP"]
+    scope: "GLOBAL"
+    
+  - name: "On-demand counterfactuals"
+    type: ON_DEMAND
+    algorithms: ["COUNTERFACTUAL"]
+
+validation_rules:
+  schema:
+    require_feature_descriptions: true
+    require_expected_ranges: true
+    warn_on_raw_names: true
+    min_features_with_descriptions: 0.5  # At least 50% described
+    
+compute_profile:
+  preferred_device: "cpu"
+  max_memory_mb: 4096
+  batch_size_hint: 1000
+
+visualization_hints:
+  primary_plot: "waterfall"
+  secondary_plots: ["beeswarm", "dependence"]
+  feature_table_columns: ["name", "importance", "description", "range"]
