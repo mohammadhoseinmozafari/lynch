@@ -5,9 +5,8 @@ from uuid import UUID
 from artifact import ModelArtifactPointer
 from dataset import DatasetBinding
 from ..code import CodeSnapshot
+from environment import EnvironmentSnapshot
 class Persona(Enum):
-    pass
-class EnvironmentSnapshot:
     pass
 class HyperparameterBundle:
     pass
