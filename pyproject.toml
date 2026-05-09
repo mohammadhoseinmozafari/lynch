@@ -1,0 +1,40 @@
+        [build-system]
+        requires = ["setuptools", "wheel"]
+        build-backend = "setuptools.build_meta"
+
+        [project]
+        name = "holmz"
+        version = "0.0.1"
+        authors = [
+          { name="MohammadHosein Mozafari", email="Mohammad.hosein.mozafaryk@gmail.com" },
+        ]
+        description = "Explainable AI platform for interrogating ML/DL models."
+        readme = "README.md"
+        requires-python = ">=3.8"
+        classifiers = [
+            "Programming Language :: Python :: 3",
+            "License :: OSI Approved :: MIT License",
+            "Operating System :: OS Independent",
+        ]
+        dependencies = [
+            "typer[all]>=0.9.0",
+            "pydantic>=2.0.0",
+        ]
+
+        [project.scripts]
+        holmz = "core.profile.main:app" # This makes 'holmz' command available
+
+        [tool.black] # Black formatter config
+        line-length = 88
+
+        [tool.isort] # isort config
+        profile = "black"
+        line_length = 88
+
+        [tool.flake8] # Flake8 linter config
+        max-line-length = 88
+        ignore = "E203, W503" # Common ignores
+
+        [tool.mypy] # Mypy type checker config
+        python_version = "3.8"
+        exclude = [".git", "__pycache__", "build", "dist", "tests/"]
