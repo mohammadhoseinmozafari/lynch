@@ -1,5 +1,6 @@
-from .models import Persona
+from .models import PersonaDefinition, Persona
 
 __all__ = [
-    'Persona'
+    'Persona',
+    'PersonaDefinition'
 ]

@@ -1,6 +1,6 @@
 {
   "project_id": "018f3a12-7b6c-4d5e-8f9a-1b2c3d4e5f6a",
-  "persona": "tabular",
+  "persona": "rag",
   "code_snapshot": {
     "git_repository": "https://github.com/company/ml-models.git",
     "git_commit_hash": "a1b2c3d4e5f6789012345678901234567890abcd",

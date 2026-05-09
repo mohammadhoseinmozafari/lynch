@@ -1,10 +1,18 @@
 from __future__ import annotations  
 from dataclasses import dataclass
+from enum import Enum
 from typing import Literal, Optional, List
 
 
+class Persona(str, Enum):
+    TABULAR= 'tabular'
+    VISION= 'vision'
+    NLP= 'nlp'
+    GENERIC= 'generic'
+
+
 @dataclass
-class Persona :
+class PersonaDefinition :
     persona: str # e.g vision
     display_name : str # e.g "Image Deep Learning Researcher"
     description : Optional[str] # e.g "For computer vision models such as ResNet, ViT"
