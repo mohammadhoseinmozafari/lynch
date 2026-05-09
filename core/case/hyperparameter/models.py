@@ -15,7 +15,7 @@ HyperparameterValue = Union [
     float,
     bool,
     str,
-    List['HyperparameterValue'],
-    Dict[str, 'HyperparameterValue']
+    List[Union[int,float,bool,str]],
+    Dict[str, Union[int,float,bool,str]]
 ]
 

@@ -13,7 +13,7 @@ from core.personas import Persona
 class RegisterModelRequest(BaseModel) :
     project_id : UUID
     family_id : UUID
-    persona : Persona
+    persona : Optional[Persona]
     code_snapshot: CodeSnapshot
     environment_snapshot: EnvironmentSnapshot
     dataset_binding: DatasetBinding

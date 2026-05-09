@@ -1,43 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-class BaseArtifactPointer(BaseModel) : 
-    """
-    A base pointer class to an artifact stored in a backend storage system.
-
-    This model contains metadata and location information for retrieving
-    an artifact (model, data, etc.) from various storage backends.
-
-    Attributes:
-        storage_backend: The storage system where the artifact is located.
-        bucket: Optional bucket or container name in the storage backend.
-        key: Unique identifier or path for the artifact in the storage backend.
-        checksum: Hash value for verifying artifact integrity.
-        size_bytes: Size of the artifact in bytes.
-        artifact_type: Type/category of the artifact (e.g., PICKLE, ONNX).
-        manifest: Optional manifest containing chunk information for large artifacts.
-        created_at: Timestamp when the artifact pointer was created.
-        tags: Optional dictionary of key-value tags for categorizing the artifact.
-    
-    """
-    storage_backend : StorageBackend
-    bucket : Optional[str] =None
-    key : str
-    checksum : str
-    size_bytes : int
-    manifest : Optional[ArtifactManifest] = None
-    created_at : Optional[datetime] = None
-    tags : Optional[dict[str, str]] = {}
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-
-@dataclass
-class StorageBackend (Enum) :
+class StorageBackend (str,Enum) :
     """
     Supported storage backends for artifact storage and retrieval.
 
@@ -56,6 +23,24 @@ class StorageBackend (Enum) :
     GCS = 'gcs'
     AZURE_BLOB = 'azure_blob'
     MINIO = 'minio'
+
+class ChunkPointer(BaseModel) :
+    """
+    A pointer to a single chunk of a multi-part artifact.
+
+    This model contains location and metadata for one piece of a larger artifact
+    that has been split into multiple chunks.
+
+    Attributes:
+        chunk_index: Zero-based index indicating the chunk's position in the sequence.
+        key: Unique identifier or path for this chunk in the storage backend.
+        checksum: Hash value for verifying this chunk's integrity.
+        size_bytes: Size of this chunk in bytes.
+    """
+    chunk_index : int
+    key : str
+    checksum : str
+    size_bytes : int
 
 class ArtifactManifest(BaseModel) :
     """
@@ -78,22 +63,36 @@ class ArtifactManifest(BaseModel) :
     total_checksum : str
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-class ChunkPointer(BaseModel) :
+class BaseArtifactPointer(BaseModel) : 
     """
-    A pointer to a single chunk of a multi-part artifact.
+    A base pointer class to an artifact stored in a backend storage system.
 
-    This model contains location and metadata for one piece of a larger artifact
-    that has been split into multiple chunks.
+    This model contains metadata and location information for retrieving
+    an artifact (model, data, etc.) from various storage backends.
 
     Attributes:
-        chunk_index: Zero-based index indicating the chunk's position in the sequence.
-        key: Unique identifier or path for this chunk in the storage backend.
-        checksum: Hash value for verifying this chunk's integrity.
-        size_bytes: Size of this chunk in bytes.
+        storage_backend: The storage system where the artifact is located.
+        bucket: Optional bucket or container name in the storage backend.
+        key: Unique identifier or path for the artifact in the storage backend.
+        checksum: Hash value for verifying artifact integrity.
+        size_bytes: Size of the artifact in bytes.
+        artifact_type: Type/category of the artifact (e.g., PICKLE, ONNX).
+        manifest: Optional manifest containing chunk information for large artifacts.
+        created_at: Timestamp when the artifact pointer was created.
+        tags: Optional dictionary of key-value tags for categorizing the artifact.
+    
     """
-    chunk_index : int
+    storage_backend : StorageBackend
+    bucket : Optional[str] = None
     key : str
-    checksum : str
-    size_bytes : int
+    checksum : str ## needs custom validation
+    size_bytes : int = Field(ge=1)
+    manifest : Optional[ArtifactManifest] = None
+    created_at : Optional[datetime] = None
+    tags : Optional[dict[str, str]] = {}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+
 
 

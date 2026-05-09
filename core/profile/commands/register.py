@@ -1,8 +1,6 @@
-import json
 from pathlib import Path
 from typing import Optional
 import typer
-
 from core.case.register import RegisterModelRequest
 
 def register_command (
@@ -27,11 +25,11 @@ def register_command (
     json_str = _read_input(file, data)
     try:
         request= RegisterModelRequest.model_validate_json(json_str)
+        
     except Exception as e :
         typer.echo(f"Invalid registration data:\n{e}", err=True)
         raise typer.Exit(code=1)
     
-    print(request)
 
 def _read_input(file: Optional[Path], data : Optional[str]) -> str :
     

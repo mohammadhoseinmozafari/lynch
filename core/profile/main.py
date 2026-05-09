@@ -1,7 +1,7 @@
 import typer
 from rich.console import Console
 from rich.panel import Panel
-
+from core.profile.commands import register_command
 console = Console()
 app = typer.Typer(help="🕵️ Holmz — your model interrogation companion.")
 
@@ -22,6 +22,6 @@ def main(ctx: typer.Context):
         console.print("Use [bold green]holmz --help[/bold green] to see available commands.\n")
 
 
-
+app.command(name='register')(register_command)
 if __name__ == "__main__":
     app()

@@ -1,0 +1,158 @@
+{
+  "project_id": "018f3a12-7b6c-4d5e-8f9a-2b3c4d5e6f7b",
+  "family_id": "018f3a12-7b6c-4d5e-8f9a-2b3c4d5e6f7c",
+  "persona": null,
+  "code_snapshot": {
+    "git_repository": "https://github.com/company/cv-models.git",
+    "git_commit_hash": "b2c3d4e5f6789012345678901234567890abcde1",
+    "entry_point": "train_resnet_classifier.py",
+    "git_branch": "main",
+    "uncommitted_diff": null,
+    "training_command": "python train_resnet_classifier.py --epochs 50 --batch-size 32",
+    "code_snapshot_hash": null
+  },
+  "environment_snapshot": {
+    "snapshot_type": "conda-lock",
+    "specification": "name: cv_env\nchannels:\n  - pytorch\n  - conda-forge\ndependencies:\n  - python=3.11.6=h2755cc3_0\n  - pytorch=2.1.0=py3.11_cuda11.8_cudnn8.7.0_0\n  - torchvision=0.16.0=py3.11_cu118\n  - numpy=1.25.2=py311h6d605af_1\n",
+    "python_version": "3.11.6",
+    "system_packages": ["libc6=2.35", "libgomp1=12.2.0"],
+    "cuda_version": "11.8"
+  },
+  "dataset_binding": {
+    "schema_snapshot": {
+      "features": [
+        {
+          "name": "image_tensor",
+          "human_readable_name": "Input Image",
+          "dtype": "float64",
+          "expected_range": {
+            "feature_type": "numeric",
+            "min": 0.0,
+            "max": 1.0
+          },
+          "description": "Normalized image tensor [3, 224, 224]",
+          "is_target": false
+        }
+      ],
+      "target": "class_label",
+      "metadata_columns": ["image_id", "source"],
+      "task_type": "classification"
+    },
+    "profile_snapshot": {
+      "row_counts": {
+        "train": 50000,
+        "val": 10000
+      },
+      "feature_stats": [
+        {
+          "name": "image_tensor",
+          "missing_rate": 0.0,
+          "feature_stats": {
+            "feature_type": "numeric",
+            "range": {
+              "feature_type": "numeric",
+              "min": 0.0,
+              "max": 1.0
+            },
+            "mean": 0.485,
+            "std": 0.229,
+            "quartiles": [0.285, 0.456, 0.672]
+          }
+        }
+      ],
+      "computed_at": "2025-11-01T10:00:00Z",
+      "drift_baseline": false
+    },
+    "split_definition": {
+      "split_name": "train",
+      "split_artifact": {
+        "storage_backend": "gcs",
+        "bucket": "cv-datasets",
+        "key": "imagenet-subset/train.parquet",
+        "checksum": "d4e5f6a7b8c9012345678901234567890abcdef1234567890abcdef123456",
+        "size_bytes": 2147483648,
+        "data_format": "parquet",
+        "compression": "zstd",
+        "record_count": 50000,
+        "column_count": 3
+      },
+      "row_count": 50000,
+      "split_fraction": 0.83,
+      "checksum": "d4e5f6a7b8c9012345678901234567890abcdef1234567890abcdef123456"
+    }
+  },
+  "hyperparameter_bundle": {
+    "parameters": {
+      "epochs": 50,
+      "batch_size": 32,
+      "learning_rate": 0.001,
+      "optimizer": "adam",
+      "weight_decay": 0.0001
+    },
+    "framework_version": "pytorch==2.1.0",
+    "notes": null
+  },
+  "metric_bundle": {
+    "metrics": {
+      "train": {
+        "metrics": {
+          "accuracy": {
+            "value": 0.945,
+            "confidence_interval": null,
+            "step": null
+          }
+        }
+      },
+      "val": {
+        "metrics": {
+          "accuracy": {
+            "value": 0.892,
+            "confidence_interval": {
+              "lower": 0.885,
+              "upper": 0.899,
+              "confidence_level": 0.95
+            },
+            "step": null
+          }
+        }
+      }
+    },
+    "primary_metric": "accuracy"
+  },
+  "model_artifact": {
+    "storage_backend": "gcs",
+    "bucket": "cv-models",
+    "key": "models/resnet50_classifier/v1/model.pt",
+    "checksum": "f7e6d5c4b3a291807162534455667788990aabbccddeeff001122334455667788",
+    "size_bytes": 10737418240,
+    "framework": "pytorch==2.1.0",
+    "artifact_type": "torchscript",
+    "manifest": {
+      "chunks": [
+        {
+          "chunk_index": 0,
+          "key": "models/resnet50_classifier/v1/chunks/model.pt.part_001",
+          "checksum": "abc123def456789012345678901234567890abcd1234",
+          "size_bytes": 5368709120
+        },
+        {
+          "chunk_index": 1,
+          "key": "models/resnet50_classifier/v1/chunks/model.pt.part_002",
+          "checksum": "def456abc7890123456789012345678901234abcd5678",
+          "size_bytes": 5368709120
+        }
+      ],
+      "assembly_instruction": "cat chunk_* > model.pt",
+      "total_size_bytes": 10737418240,
+      "total_checksum": "f7e6d5c4b3a291807162534455667788990aabbccddeeff001122334455667788"
+    },
+    "created_at": "2025-11-01T10:00:00Z",
+    "tags": {
+      "architecture": "resnet50",
+      "pretrained": "true"
+    }
+  },
+  "parent_version_id": null,
+  "indempotency_key": null,
+  "allow_uninterpretable": true
+}
