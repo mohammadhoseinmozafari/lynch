@@ -1,13 +1,13 @@
 from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
-from artifact import ModelArtifactPointer
-from dataset import DatasetBinding
-from ..code import CodeSnapshot
-from environment import EnvironmentSnapshot
-from metric import MetricBundle
-from hyperparameter import HyperparameterBundle
-from personas import Persona
+from core.case.artifact import ModelArtifactPointer
+from core.case.dataset import DatasetBinding
+from core.case.code import CodeSnapshot
+from core.case.environment import EnvironmentSnapshot
+from core.case.metric import MetricBundle
+from core.case.hyperparameter import HyperparameterBundle
+from core.personas import Persona
 
 
 class RegisterModelRequest(BaseModel) :

@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel,Field
 from typing import List, Optional, Dict, Tuple
 from enum import Enum
-from schema import NumericRange
+from core.case.dataset.schema import NumericRange
 
 
 class FType (Enum) :
@@ -33,8 +33,8 @@ class BaseStats (BaseModel) :
 class NumericStats (BaseStats):
     feature_type : FType = FType('numeric')
     range : Optional[NumericRange] = None
-    mean = Optional[float] = None
-    std = Optional [float] = Field(ge=0.0)
+    mean : Optional[float] = None
+    std : Optional [float] = Field(ge=0.0, default=None)
     quartiles : Optional[Tuple[float, float, float]]
 
 class CategoricalStats (BaseStats) :

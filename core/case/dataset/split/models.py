@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel, Field
 from enum import Enum
-from artifact import DataArtifactPointer 
+from core.case.artifact import DataArtifactPointer 
 
 
 class SplitDefinition(BaseModel):
