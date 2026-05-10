@@ -2,23 +2,14 @@ from __future__ import annotations
 from datetime import datetime
 from pydantic import BaseModel,Field
 from typing import List, Optional, Dict, Tuple
-from enum import Enum
 from core.case.artifact import DataArtifactPointer
 from core.case.dataset.schema import NumericRange
+from core.case.dataset import DataSplitName, DataFeatureType
 
 
-class DataSplitName(str,Enum) :
-    TRAIN = 'train'
-    VAL = 'val'
-    TEST = 'test'
 
 
-class DataFeatureType (str, Enum) :
-    NUMERIC = "numeric"
-    CATEGORICAL = "categorical"
-    #DATETIME = "datetime"
-    ## text_length
-    ## geospatial
+
 
 class DataProfile(BaseModel) :
     """
@@ -42,7 +33,7 @@ class DataSplitProfile(BaseModel):
         split_name: Name of the split (currently supports train , val and test)
         split_artifact: Pointer to the data split artifact.
         row_count: Number of rows of the split.
-        feature_stats: List of feature profiles of the split.
+        feature_stats: List of feature profiles of the data split.
         split_fraction: Fraction of split (e.g 0.8 for train split)
         checksum: checksum
     """

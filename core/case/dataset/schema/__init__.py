@@ -1,7 +1,7 @@
-from .models import DataSchemaSnapshot , NumericRange
+from .models import DataSchema , NumericRange
 
 
 __all__ = [
-    'DataSchemaSnapshot',
+    'DataSchema',
     'NumericRange'
 ]
