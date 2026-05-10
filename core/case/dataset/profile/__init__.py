@@ -1,5 +1,8 @@
-from .models import DataProfileSnapshot
-
+from .models import DataProfile, DataFeatureProfile, DataSplitProfile
+from .validation_models import DataProfileValidationReport
 __all__ = [
-    'DataProfileSnapshot'
+    'DataProfile',
+    'DataFeatureProfile',
+    'DataSplitProfile',
+    'DataProfileValidationReport'
 ]
