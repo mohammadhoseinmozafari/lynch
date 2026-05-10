@@ -2,8 +2,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from core.case.code import CodeSnapshot
-from core.case.validation import CodeSnapshotValidation, CodeCompleteness
-from core.case.validation.code_snapshot_validator import CodeSnapshotErrorCode, CodeSnapshotWarningCode, WarningSeverity
+from core.case.code import CodeSnapshotValidation, CodeCompleteness, CodeSnapshotErrorCode, CodeSnapshotWarningCode, WarningSeverity
 logger = logging.getLogger(__name__)
 class CodeSnapshotValidator :
     """

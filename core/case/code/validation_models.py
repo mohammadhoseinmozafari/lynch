@@ -13,7 +13,7 @@ This is a CUSTOM validator — it handles domain rules that Pydantic cannot:
 
 from __future__ import annotations
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 # =============================================================================
 # Enums
