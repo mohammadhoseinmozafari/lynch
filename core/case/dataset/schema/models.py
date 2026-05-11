@@ -26,15 +26,17 @@ class DataSplitSchema (BaseModel):
         split_name: Name of the split (currently supports train , val and test)
         split_artifact: Pointer to the data split artifact. 
         features: List of features of the data split.
+        targets: List of targets of the data split
         metadata_columns: Metadata columns that won't be used for model training. (e.g 'id')
-        target: Name of the target column.
+        
     """
     split_name: DataSplitName
     split_artifact: DataArtifactPointer
     features: Dict[str, FeatureSchema] = Field(min_length=1) 
+    targets: Optional[Dict[str, FeatureSchema]]= Field(default=None)
     metadata_columns: Optional[List[str]] = Field(default=None)
-    target: Optional[str]= Field(default=None)
-    @field_validator('features')
+    
+    @field_validator('features','targets')
     def check_feature_names_match_keys(cls, v) -> None:
         """Ensures that the 'name' attribute of each FeatureSchema matches it's key in the dictionary."""
 
@@ -47,24 +49,22 @@ class DataSplitSchema (BaseModel):
     
 class FeatureSchema (BaseModel) :
     """
-    Schema of a single feature within a dataset.
+    Schema of a single feature/target  within a dataset.
     Attributes:
-        name: Name of the feature.
-        human_readable_name: raw name might not be human readable (e.g "x_1", "feature_1").
+        name: Name of the feature/target.
+        human_readable_name: raw name might not be human readable (e.g "x_1", "y_1").
             Providing a human readable name will later be useful and reduces the pain.
-        dtype: Data type of the feature. (e.g float64)
-        expected_range: Expected range (stats) of the feature. 
-            For example we might calculate statistics of a train set and we know that the range for a specific feature is (50, 100),
-            then we can expect the same range in the validation set
-        description: Description of the feature. This is optional, but crucial for interpretability.
-        is_target: Shows if the feature is a target or not.
+        dtype: Data type of the feature/target. (e.g float64)
+        expected_range: Expected range (stats) of the feature/target. 
+            For example we might calculate feature statistics of a train set and we know that the range for a specific feature is (50, 100),
+            then we can expect the same range in the validation set. The corresponding feature in val set will have expected_range = (50,100).
+        description: Description of the feature/target. This is optional, but crucial for interpretability.
     """
     name : str = Field(min_length=1, max_length=255, pattern='^[a-zA-Z_][a-zA-Z0-9_]*$')
     human_readable_name : str = Field(min_length=1)
     dtype : DataType 
     expected_range : Optional[BaseRange] = None
     description : Optional[str] = Field(max_length=150, default="Feature description") 
-    is_target : bool = False
 
 class BaseRange (BaseModel) :
     feature_type : DataFeatureType
