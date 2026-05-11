@@ -1,9 +1,9 @@
 
 from __future__ import annotations
 from typing import List, Optional, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from core.case.artifact import DataArtifactPointer
-from core.case.dataset import DataSplitName, DataType, DataFeatureType, TaskType
+from core.case.dataset.common import DataSplitName, DataType, DataFeatureType, TaskType
 
 class DataSchema (BaseModel) :
     """
@@ -16,6 +16,9 @@ class DataSchema (BaseModel) :
     splits: Dict[DataSplitName, DataSplitSchema]
     task_type : Optional[TaskType] = Field(default=None)
 
+    def get_split(self, split_name : str) -> Optional[DataSplitSchema]:
+        enum_key = DataSplitName(split_name)
+        return self.splits.get(enum_key)
 class DataSplitSchema (BaseModel):
     """
     Schema of a single data split (e.g train set)
@@ -28,9 +31,18 @@ class DataSplitSchema (BaseModel):
     """
     split_name: DataSplitName
     split_artifact: DataArtifactPointer
-    features: List[FeatureSchema] = Field(min_length=1) 
+    features: Dict[str, FeatureSchema] = Field(min_length=1) 
     metadata_columns: Optional[List[str]] = Field(default=None)
     target: Optional[str]= Field(default=None)
+    @field_validator('features')
+    def check_feature_names_match_keys(cls, v) -> None:
+        """Ensures that the 'name' attribute of each FeatureSchema matches it's key in the dictionary."""
+
+        for dict_name, feature_schema in v.items():
+            if feature_schema.name != dict_name:
+                raise ValueError(f"Feature name mismatch: Key '{dict_name}' doesn't match FeatureSchema's internal name '{feature_schema.name}'")
+            return v
+
 
     
 class FeatureSchema (BaseModel) :
