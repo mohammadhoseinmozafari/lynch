@@ -11,6 +11,7 @@ class DataSchemaErrorCode(str, Enum):
 class DataSchemaWarningCode(str, Enum):
     VAL_EMPTY = "VAL_EMPTY"
     TEST_EMPTY = "TEST_EMPTY"
+    TARGETS_EMPTY = "TARGETS_EMPTY"
 
 
 class WarningSeverity(str, Enum):

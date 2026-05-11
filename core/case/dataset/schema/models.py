@@ -35,15 +35,20 @@ class DataSplitSchema (BaseModel):
     features: Dict[str, FeatureSchema] = Field(min_length=1) 
     targets: Optional[Dict[str, FeatureSchema]]= Field(default=None)
     metadata_columns: Optional[List[str]] = Field(default=None)
+
+    @property 
+    def has_target_variables(self) ->bool:
+        return self.targets is not None
     
     @field_validator('features','targets')
     def check_feature_names_match_keys(cls, v) -> None:
         """Ensures that the 'name' attribute of each FeatureSchema matches it's key in the dictionary."""
-
+        if not v:
+            return v
         for dict_name, feature_schema in v.items():
             if feature_schema.name != dict_name:
                 raise ValueError(f"Feature name mismatch: Key '{dict_name}' doesn't match FeatureSchema's internal name '{feature_schema.name}'")
-            return v
+        return v
 
 
     

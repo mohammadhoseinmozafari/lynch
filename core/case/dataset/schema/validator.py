@@ -49,6 +49,8 @@ class DataSchemaValidator:
             )
         ### Validate whether features are identic across split schemas
         self._validate_identic_features(schema=schema, report=report)
+        ### validate whether targets are identic across split schemas
+        self._validate_identic_targets(schema=schema, report=report)
 
         
             
@@ -80,5 +82,51 @@ class DataSchemaValidator:
                         feature_names=list(extra_features),
 
                     )
+    def _validate_identic_targets(self,
+                                  schema: DataSchema,
+                                  report: DataSchemaValidationReport)->None:
+        reference_data_split= DataSplitName.TRAIN
+        reference_targets = set(schema.splits[reference_data_split].targets.keys()) if schema.splits[reference_data_split].targets else None
+        reference_has_targets = reference_targets is not None
+
+
+        for data_split_name, data_split_schema in schema.splits.items():
+
+            current_targets = set(data_split_schema.targets.keys()) if data_split_schema.targets else None
+            current_has_targets = current_targets is not None
+
+            if reference_has_targets!=current_has_targets:
+                if reference_has_targets:
+                    report.add_error(
+                            code = DataSchemaErrorCode.INCONSISTENT_SCHEMA,
+                            detail= f"Target inconsistency: Reference split '{reference_data_split.value}' has targets "
+                                        f"({sorted(list(reference_targets))}), but split '{data_split_name.value}' has no targets defined."
+                
+                                    )
+                else:
+                    report.add_error(
+                        code= DataSchemaErrorCode.INCONSISTENT_SCHEMA,
+                        detail= f"Target inconsistency: Reference split '{reference_data_split.value}' has no targets defined, "
+                                f"but split '{data_split_name.value}' has targets ({sorted(list(current_targets))})."
+                    )
+            if reference_has_targets and current_has_targets:
+                if reference_targets!=current_targets:
+                    missing_targets = reference_targets - current_targets
+                    extra_targets = current_targets - reference_targets
+                    if missing_targets:
+                        report.add_error(
+                        code=DataSchemaErrorCode.INCONSISTENT_SCHEMA,
+                        detail=f"Split '{data_split_name.value}' is missing targets found in '{reference_data_split.value}' : {list(missing_targets)} ",
+                        feature_names=list(missing_targets)
+                        )
+                    if extra_targets:
+                        report.add_error(
+                        code=DataSchemaErrorCode.INCONSISTENT_SCHEMA,
+                        detail=f"Split '{data_split_name.value}' has extra targets not found in '{reference_data_split.value}' : {list(extra_targets)} ",
+                        feature_names=list(extra_targets),
+
+                    )
+                    
+
         
         
