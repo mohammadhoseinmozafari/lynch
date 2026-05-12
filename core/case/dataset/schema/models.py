@@ -1,6 +1,6 @@
 
 from __future__ import annotations
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Set
 from pydantic import BaseModel, Field, field_validator
 from core.case.artifact import DataArtifactPointer
 from core.case.dataset.common import DataSplitName, DataType, DataFeatureType, TaskType
@@ -16,9 +16,15 @@ class DataSchema (BaseModel) :
     splits: Dict[DataSplitName, DataSplitSchema]
     task_type : Optional[TaskType] = Field(default=None)
 
+    def get_splits(self) -> Dict[DataSplitName, DataSplitSchema]:
+        return self.splits
+
     def get_split(self, split_name : str) -> Optional[DataSplitSchema]:
         enum_key = DataSplitName(split_name)
         return self.splits.get(enum_key)
+    
+    def get_task_type (self) -> Optional[TaskType]:
+        return self.task_type
 class DataSplitSchema (BaseModel):
     """
     Schema of a single data split (e.g train set)
@@ -36,6 +42,29 @@ class DataSplitSchema (BaseModel):
     targets: Optional[Dict[str, FeatureSchema]]= Field(default=None)
     metadata_columns: Optional[List[str]] = Field(default=None)
 
+    
+    def get_split_name(self) -> str:
+        return self.split_name.value
+    
+    def get_artifact (self) -> DataArtifactPointer:
+        return self.split_artifact
+    
+    def get_features_names(self) -> Set[str]:
+        return set(self.features.keys())
+    
+    def get_features_schemas(self) -> Dict[str,FeatureSchema]:
+        return self.features
+    
+    def get_targets_names (self) -> Optional[Set[str]]:
+        return set(self.targets.keys()) if self.targets else None
+    
+    def get_targets_schemas (self) -> Optional[Dict[str,FeatureSchema]]:
+        return self.targets 
+    
+    def get_metadata_columns (self) -> Optional[List[str]]:
+        return self.metadata_columns
+    
+    
     @property 
     def has_target_variables(self) ->bool:
         return self.targets is not None
