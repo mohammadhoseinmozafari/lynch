@@ -1,8 +1,4 @@
 from enum import Enum
-class DataSplitName(str,Enum) :
-    TRAIN = 'train'
-    VAL = 'val'
-    TEST = 'test'
 
 class DataFeatureType (str, Enum) :
     NUMERIC = "numeric"

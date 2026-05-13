@@ -1,11 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
-from pydantic import BaseModel,Field, field_serializer, field_validator
-from typing import List, Optional, Dict, Tuple
-from core.case.artifact import DataArtifactPointer
+from pydantic import BaseModel,Field, field_validator
+from typing import Optional, Dict, Tuple, Set
 from core.case.dataset.schema import NumericRange
-from core.case.dataset.common import DataSplitName, DataFeatureType
-
+from core.case.dataset.common import  DataFeatureType
 
 
 
@@ -14,45 +12,29 @@ from core.case.dataset.common import DataSplitName, DataFeatureType
 class DataProfile(BaseModel) :
     """
     Statistical summary of the data, used for drift detection and baseline comparisons.
+    Contains per‑feature statistics and a timestamp.
+    
     Attributes:
-        splits: Splits of the data with their corresponding feature statistics.
+        feature_profiles: Mapping from feature name to its statistical profile.
         computed_at: When the profile was generated.
-        drift_baseline: the given Split (e.g 'train') becomes the refrence for future
-            drift detection for this model family.
     """
-    splits : Dict[DataSplitName ,DataSplitProfile]
-    computed_at : Optional[datetime] = Field(None)
-    drift_baseline : Optional[DataSplitName] =Field(None)
-    
-
-class DataSplitProfile(BaseModel):
-    """
-    Profile of a single data split (e.g train set).
-    
-    Attributes:
-        split_name: Name of the split (currently supports train , val and test)
-        split_artifact: Pointer to the data split artifact.
-        row_count: Number of rows of the split.
-        feature_stats: List of feature profiles of the data split.
-        split_fraction: Fraction of split (e.g 0.8 for train split)
-        checksum: checksum
-    """
-    split_name : DataSplitName
-    split_artifact : DataArtifactPointer
-    row_count : int = Field(ge=1)
     feature_profiles : Dict[str, DataFeatureProfile]
-    split_fraction : Optional[float] = Field(None, ge= 0.0, le=1.0)
-    checksum : Optional[str] = Field(None, min_length=64, max_length=64)
+    computed_at : Optional[datetime] = Field(None)
+    
+    def get_feature_names (self) -> Set[str]:
+        return set(self.feature_profiles.keys())
 
-    @field_validator('feature_stats')
-    def check_feature_names_match_keys(cls, v) -> None:
-        """Ensures that the 'name' attribute of each DataFeatureProfile matches it's key in the dictionary."""
-        for dict_name, feature_profile in v.items():
-            if feature_profile.name != dict_name:
-                raise ValueError(f"Feature name mismatch: Key '{dict_name}' doesn't match FeatureProfile's internal name '{feature_profile.name}'")
+
+    @field_validator('feature_profiles')
+    def check_feature_names_match_keys(cls, v: dict) -> dict:
+        """Ensure each DataFeatureProfile's internal name matches its dictionary key."""
+        for key, profile in v.items():
+            if profile.name != key:
+                raise ValueError(
+                    f"Feature name mismatch: key '{key}' does not match "
+                    f"DataFeatureProfile.name '{profile.name}'"
+                )
         return v
-
-
 
 
 
@@ -61,54 +43,58 @@ class DataFeatureProfile (BaseModel) :
     Profile of a single feature within the dataset.
         
     Attributes:
-        name: name of the feature.
-        missing_rate: ratio of missing values of the given feature.
-        feature_stats: statistics (e.g mean, std, ...) of the given feature.
+        name: Feature name (must match the key in DataProfile).
+        missing_rate: Fraction of missing values (0‑1).
+        feature_stats: Type‑specific statistics (numeric, categorical, etc.).
     """
     name : str = Field (min_length=1)
     missing_rate : float = Field(ge=0.0,le=1.0)
-    feature_stats : Optional[BaseStats] 
+    feature_stats : BaseStats 
+    @field_validator('missing_rate')
+    @classmethod
+    def missing_rate_stats_match(cls, v):
+        if v is None:
+            return v
+        if v == 1.0:
+            raise ValueError("What do you want to know? all the values are missing")
+        return v
+        
 
 
 
 class BaseStats (BaseModel) :
-    """
-    Base Model for data feature statistics.
-
-    Attributes:
-        feature_type: type of the feature (numerical, categorical, datetime, ...)
-    """
+    """Base for feature statistics, tagged by type."""
     feature_type : DataFeatureType
 
 class NumericStats (BaseStats):
     """
-    Statistics of a numerical data feature.
+    Statistics for a numerical feature.
 
     Attributes:
-        feature_type: Type of the feature which is numerical. Cannot be changed.
+        feature_type: Numerical
         range: Range of the numerical feature. e.g (0,100)
         mean: Mean of the numerical feature.
         std: Standard deviation of the numerical feature.
         quartiles : Quartiles (25, 50, 75) of the numerical feature.
     """
     feature_type : DataFeatureType = Field(default=DataFeatureType.NUMERIC, frozen=True)
-    range : Optional[NumericRange] = Field(None)
-    mean : Optional[float] = Field(None)
-    std : Optional [float] = Field(default=None)
-    quartiles : Optional[Tuple[float, float, float]] = Field(default=None)
+    range : NumericRange 
+    mean : float 
+    std : float 
+    quartiles : Tuple[float, float, float]
 
 class CategoricalStats (BaseStats) :
     """
     Statistics of a categorical data feature.
     
     Attributes:
-        feature_type: Type of the feature which is categorical. Cannot be changed.
+        feature_type: Categorical
         cardinality: Number of unique values of the categorical feature.
         top_values: Values with highest appearance frequency.
     """
     feature_type : DataFeatureType = Field(default=DataFeatureType.CATEGORICAL, frozen=True)
-    cardinality : Optional[int] = Field(ge=1.0, default=None)
-    top_values : Optional [Dict[str, float]]
+    cardinality : int = Field(ge=1.0)
+    top_values : Dict[str, float]
 
 
 

@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict,Field
 from typing import Any, List, Optional
 from enum import Enum
 class DataSchemaErrorCode(str, Enum):
-    INCONSISTENT_SCHEMA = "INCONSISTENT_SCHEMA"
+    
     TRAIN_EMPTY = "TRAIN_EMPTY"
 
 
