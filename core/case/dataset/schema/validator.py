@@ -186,14 +186,14 @@ class DataSchemaValidator:
                 if reference_has_targets:
                     report.add_error(
                             code = DataSchemaErrorCode.INCONSISTENT_SCHEMA,
-                            detail= f"Target inconsistency: Reference split '{reference_data_split.get_split_name()}' has targets "
+                            detail= f"Target inconsistency: Reference split '{reference_data_split.get_split_name()}' has targets " # type: ignore
                                         f"({sorted(list(reference_targets))}), but split '{data_split_name.value}' has no targets defined."
                 
                                     )
                 else:
                     report.add_error(
                         code= DataSchemaErrorCode.INCONSISTENT_SCHEMA,
-                        detail= f"Target inconsistency: Reference split '{reference_data_split.get_split_name()}' has no targets defined, "
+                        detail= f"Target inconsistency: Reference split '{reference_data_split.get_split_name()}' has no targets defined, " # type: ignore
                                 f"but split '{data_split_name.value}' has targets ({sorted(list(current_targets))})." # type: ignore
                     )
             if reference_has_targets and current_has_targets:
@@ -203,13 +203,13 @@ class DataSchemaValidator:
                     if missing_targets:
                         report.add_error(
                         code=DataSchemaErrorCode.INCONSISTENT_SCHEMA,
-                        detail=f"Split '{data_split_name.value}' is missing targets found in '{reference_data_split.get_split_name()}' : {list(missing_targets)} ",
+                        detail=f"Split '{data_split_name.value}' is missing targets found in '{reference_data_split.get_split_name()}' : {list(missing_targets)} ", # type: ignore
                         feature_names=list(missing_targets)
                         )
                     if extra_targets:
                         report.add_error(
                         code=DataSchemaErrorCode.INCONSISTENT_SCHEMA,
-                        detail=f"Split '{data_split_name.value}' has extra targets not found in '{reference_data_split.get_split_name()}' : {list(extra_targets)} ",
+                        detail=f"Split '{data_split_name.value}' has extra targets not found in '{reference_data_split.get_split_name()}' : {list(extra_targets)} ", # type: ignore
                         feature_names=list(extra_targets),
 
                     )

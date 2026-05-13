@@ -1,10 +1,10 @@
 from __future__ import annotations
 from datetime import datetime
-from pydantic import BaseModel,Field
+from pydantic import BaseModel,Field, field_serializer, field_validator
 from typing import List, Optional, Dict, Tuple
 from core.case.artifact import DataArtifactPointer
 from core.case.dataset.schema import NumericRange
-from core.case.dataset import DataSplitName, DataFeatureType
+from core.case.dataset.common import DataSplitName, DataFeatureType
 
 
 
@@ -21,8 +21,8 @@ class DataProfile(BaseModel) :
             drift detection for this model family.
     """
     splits : Dict[DataSplitName ,DataSplitProfile]
-    computed_at : Optional[datetime] = None
-    drift_baseline : Optional[DataSplitName] = DataSplitName.TRAIN
+    computed_at : Optional[datetime] = Field(None)
+    drift_baseline : Optional[DataSplitName] =Field(None)
     
 
 class DataSplitProfile(BaseModel):
@@ -40,9 +40,18 @@ class DataSplitProfile(BaseModel):
     split_name : DataSplitName
     split_artifact : DataArtifactPointer
     row_count : int = Field(ge=1)
-    feature_stats : List[DataFeatureProfile]
+    feature_profiles : Dict[str, DataFeatureProfile]
     split_fraction : Optional[float] = Field(None, ge= 0.0, le=1.0)
     checksum : Optional[str] = Field(None, min_length=64, max_length=64)
+
+    @field_validator('feature_stats')
+    def check_feature_names_match_keys(cls, v) -> None:
+        """Ensures that the 'name' attribute of each DataFeatureProfile matches it's key in the dictionary."""
+        for dict_name, feature_profile in v.items():
+            if feature_profile.name != dict_name:
+                raise ValueError(f"Feature name mismatch: Key '{dict_name}' doesn't match FeatureProfile's internal name '{feature_profile.name}'")
+        return v
+
 
 
 
@@ -83,9 +92,9 @@ class NumericStats (BaseStats):
         quartiles : Quartiles (25, 50, 75) of the numerical feature.
     """
     feature_type : DataFeatureType = Field(default=DataFeatureType.NUMERIC, frozen=True)
-    range : Optional[NumericRange] = None
-    mean : Optional[float] = None
-    std : Optional [float] = Field(ge=0.0, default=None)
+    range : Optional[NumericRange] = Field(None)
+    mean : Optional[float] = Field(None)
+    std : Optional [float] = Field(default=None)
     quartiles : Optional[Tuple[float, float, float]] = Field(default=None)
 
 class CategoricalStats (BaseStats) :

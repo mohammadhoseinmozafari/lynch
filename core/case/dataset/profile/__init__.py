@@ -1,8 +1,11 @@
-from .models import DataProfile, DataFeatureProfile, DataSplitProfile
-from .validation_models import DataProfileValidationReport
+from .models import DataProfile, DataFeatureProfile, DataSplitProfile, NumericStats
+from .validation_models import DataProfileValidationReport, DataProfileErrorCode, DataProfileWarningCode
 __all__ = [
     'DataProfile',
     'DataFeatureProfile',
     'DataSplitProfile',
-    'DataProfileValidationReport'
+    'DataProfileValidationReport',
+    'NumericStats',
+    'DataProfileErrorCode',
+    'DataProfileWarningCode'
 ]
