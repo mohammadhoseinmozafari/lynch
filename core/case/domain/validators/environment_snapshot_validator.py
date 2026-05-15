@@ -7,10 +7,13 @@ from core.case.domain.errors.env_snapshot_errors import EnvironmentSnapshotError
 from core.case.domain.value_objects.environment_snapshot import EnvironmentSnapshot
 from core.case.domain.enums.env_snapshot_type import EnvSnapshotType
 
-from core.shared.validators import (
-    BaseValidator, ValidationRule, ValidationReport, 
-    RuleSeverity, WarningSeverity
-)
+from core.shared.domain.enums.rule_severity import RuleSeverity
+from core.shared.domain.enums.warning_severity import WarningSeverity
+from core.shared.domain.value_objects.validation_report import ValidationReport
+from core.shared.domain.value_objects.validation_rule import ValidationRule
+from core.shared.validators import BaseValidator
+   
+
 
 
 class EnvironmentValidator(BaseValidator[EnvironmentSnapshot]):

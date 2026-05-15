@@ -1,11 +1,14 @@
 from __future__ import annotations
 from core.case.domain.value_objects import CodeSnapshot
-from core.shared.validators import BaseValidator, ValidationReport, WarningSeverity
+from core.shared.domain.enums.rule_severity import RuleSeverity
+from core.shared.domain.enums.warning_severity import WarningSeverity
+from core.shared.domain.value_objects.validation_report import ValidationReport
+from core.shared.domain.value_objects.validation_rule import ValidationRule
+from core.shared.validators import BaseValidator
 from core.case.domain.errors.code_snapshot_errors import CodeSnapshotErrorCode, CodeSnapshotWarningCode
 
 import logging
 
-from core.shared.validators.validation_report import RuleSeverity, ValidationRule
 
 logger = logging.getLogger(__name__)
 class CodeSnapshotValidator(BaseValidator[CodeSnapshot]) :

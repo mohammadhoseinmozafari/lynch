@@ -1,6 +1,6 @@
 from core.case.domain.enums import DataFormat, DataCompression
 from typing import Optional
-from core.case.domain.value_objects.base_artifact import BaseArtifactPointer
+from core.case.domain.entities.base_artifact import BaseArtifactPointer
 
 
 class DataArtifactPointer (BaseArtifactPointer) :

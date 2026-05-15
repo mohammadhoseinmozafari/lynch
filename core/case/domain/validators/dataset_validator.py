@@ -1,8 +1,12 @@
 from __future__ import annotations
 from typing import Set
-from core.case.domain.entities.dataset_binding import DatasetBinding
-from core.shared.validators import BaseValidator, ValidationReport, WarningSeverity
-from core.shared.validators.validation_report import RuleSeverity, ValidationRule
+from core.case.domain.value_objects.dataset_binding import DatasetBinding
+from core.shared.domain.enums.rule_severity import RuleSeverity
+from core.shared.domain.enums.warning_severity import WarningSeverity
+from core.shared.domain.value_objects.validation_report import ValidationReport
+from core.shared.domain.value_objects.validation_rule import ValidationRule
+from core.shared.validators import BaseValidator
+
 from core.case.domain.errors.dataset_errors import DatasetErrorCode,DatasetWarningCode
 from core.case.domain.value_objects.data_profile_stats import NumericStats, CategoricalStats
 
