@@ -9,4 +9,3 @@ class EnvironmentSnapshot (BaseModel) :
     specification : str
     python_version : str
     system_packages : List[str]
-    cuda_version : Optional[str] = None
