@@ -63,6 +63,268 @@ class TestEnvironmentValidator:
         
         # Should have no errors with proper pip freeze format
         assert not report.has_errors
+    
+    def test_valid_system_packages_only(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'valid' / 'valid_system_packages_only.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                assert not report.has_errors, f"Expected no errors but got: {[e.code for e in report.errors]}"
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                for expected_code in expected_warning_codes:
+                     assert expected_code in warning_codes
+
+    def test_error_unpinned_python_version(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'error' / 'error_unpinned_python_version.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    def test_invalid_python_version(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'error' / 'invalid_python_version.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+
+    def test_missing_version_pin(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'error' / 'error_missing_version_pin_pip.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    def test_unexact_version_pin(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'error' / 'error_unexact_version_pin_pip.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    def test_invalid_pip_requirement(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'error' / 'error_invalid_pip_requirement.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    def test_warning_dev_python_version(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_dev_python_version.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    
+    def test_warning_local_python_version(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_local_python_version.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    def test_warning_prerelease_python(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_prerelease_python.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    def test_warning_deprecated_python(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_deprecated_python.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    
+    def test_warning_extras_in_lock(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_extras_in_lock.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+
+    def test_warning_markers_in_lock(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_markers_in_lock.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+
+    def test_warning_url_dependency(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_url_dependency.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    
+    def test_warning_missing_hashes_pip(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_missing_hashes_pip.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    def test_warning_unpinned_system_package(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_unpinned_system_package.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    
+        
+    def test_warning_version_range_system(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_version_range_system.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
+    
+    def test_warning_duplicate_dependencies(self, validator: EnvironmentValidator, validation_report: ValidationReport, load_test_case: Callable[...,Any])  -> None:
+                test_dir =  Path(__file__).parent / 'fixtures' / 'warning' / 'warning_duplicate_dependencies.json'
+                test_case= load_test_case(test_dir)
+                snapshot= EnvironmentSnapshot.model_validate(test_case['input'])
+                report = validator.validate(snapshot, validation_report)
+                
+                expected_error_codes = test_case['expected_errors']
+                expected_warning_codes = test_case['expected_warnings']
+                warning_codes = [warning.code for warning in report.warnings]
+                error_codes = [error.code for error in report.errors]
+                for expected_error_code in expected_error_codes:
+                     assert expected_error_code in error_codes
+                
+                for expected_warn_code in expected_warning_codes:
+                     assert expected_warn_code in warning_codes
         
     
 

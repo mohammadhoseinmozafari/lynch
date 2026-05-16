@@ -65,14 +65,13 @@ class BaseValidator(ABC, Generic[T]):
                 return True
         return False
     
-    def _rule_has_errors(self, rule_name: str, report: ValidationReport, 
-                         errors_before: int, warnings_before: int) -> bool:
+    def _rule_has_errors(self, report: ValidationReport, 
+                         errors_before: int) -> bool:
         """
         Check if this rule added any errors or warnings.
         Compares report state before and after rule execution.
         """
-        return (report.error_count > errors_before or 
-                report.warning_count> warnings_before)
+        return report.error_count > errors_before 
     
     # ========================================================================
     # Main Validation Entry Point
@@ -111,7 +110,6 @@ class BaseValidator(ABC, Generic[T]):
             
             # Snapshot report state before running rule
             errors_before = report.error_count
-            warnings_before = report.warning_count
             
             # Run the validation rule
             self._status[rule_name] = ValidationStatus.RUNNING
@@ -122,7 +120,7 @@ class BaseValidator(ABC, Generic[T]):
                 rule.func(target, report, rule_name)
                 
                 # Check if rule added any errors/warnings
-                if self._rule_has_errors(rule_name, report, errors_before, warnings_before):
+                if self._rule_has_errors(report, errors_before=errors_before):
                     self._status[rule_name] = ValidationStatus.FAILED
                     
                     # Track failed blocking rules

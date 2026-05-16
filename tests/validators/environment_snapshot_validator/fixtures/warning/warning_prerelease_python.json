@@ -1,0 +1,14 @@
+{
+  "test_case": "warning_prerelease_python",
+  "description": "Python version is pre-release (alpha/beta/rc)",
+  "input": {
+    "snapshot_type": "pip-lock",
+    "python_version": "3.12.0rc1",
+    "specification": "requests==2.31.0",
+    "system_packages": []
+  },
+  "expected_errors": [],
+  "expected_warnings": [
+     "PRERELEASE_PYTHON_VERSION"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "test_case": "warning_local_python_version",
+  "description": "Python version has local identifier",
+  "input": {
+    "snapshot_type": "pip-lock",
+    "python_version": "3.10.12+local",
+    "specification": "requests==2.31.0",
+    "system_packages": []
+  },
+  "expected_errors": [],
+  "expected_warnings": [
+   
+       "LOCAL_PYTHON_VERSION"
+   
+  ]
+}

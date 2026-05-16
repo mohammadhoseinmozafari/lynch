@@ -1,0 +1,18 @@
+{
+  "test_case": "warning_deprecated_python",
+  "description": "Python version is deprecated/end-of-life (Python 3.7 or older)",
+  "input": {
+    "snapshot_type": "pip-lock",
+    "python_version": "3.7.17",
+    "specification": "requests==2.31.0",
+    "system_packages": []
+  },
+  "expected_errors": [],
+  "expected_warnings": [
+    
+     "DEPRECATED_PYTHON_VERSION"
+     
+    
+    
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "test_case": "warning_markers_in_lock",
+  "description": "PIP lock file contains environment markers",
+  "input": {
+    "snapshot_type": "pip-lock",
+    "python_version": "3.10.12",
+    "specification": "requests==2.31.0; python_version < '3.11'\nflask==2.3.0; sys_platform == 'win32'",
+    "system_packages": []
+  },
+  "expected_errors": [],
+  "expected_warnings": [
+    
+      "MARKERS_IN_LOCK_FILE"
+  ]
+}

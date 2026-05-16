@@ -1,0 +1,15 @@
+{
+  "test_case": "error_invalid_pip_requirement",
+  "description": "PIP requirement line has invalid format that cannot be parsed",
+  "input": {
+    "snapshot_type": "pip-lock",
+    "python_version": "3.10.12",
+    "specification": "requests===2.31.0\ninvalid!!!package\nflask==2.3.0",
+    "system_packages": []
+  },
+  "expected_errors": [
+    
+      "INVALID_PIP_REQUIREMENT"
+  ],
+  "expected_warnings": []
+}

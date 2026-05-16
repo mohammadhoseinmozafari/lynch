@@ -1,0 +1,16 @@
+{
+  "test_case": "warning_version_range_system",
+  "description": "System package uses version range instead of exact version",
+  "input": {
+    "snapshot_type": "pip-lock",
+    "python_version": "3.10.12",
+    "specification": "requests==2.31.0",
+    "system_packages": ["docker>=24.0.0", "git~=2.39.0"]
+  },
+  "expected_errors": [],
+  "expected_warnings": [
+    
+       "VERSION_RANGE_SYSTEM_PACKAGE"
+      
+  ]
+}

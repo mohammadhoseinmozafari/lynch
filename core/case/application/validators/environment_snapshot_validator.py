@@ -155,7 +155,7 @@ class EnvironmentValidator(BaseValidator[EnvironmentSnapshot]):
             report.add_error(
                 code=EnvironmentSnapshotErrorCode.INVALID_PYTHON_VERSION,
                 detail=f"Invalid Python version format: '{version_str}'. "
-                       f"Expected format like '3.10.12'",
+                       f"Expected format like '3.10.12', '3.10' or '3'",
                 context={"python_version": version_str}
             )
     
@@ -200,7 +200,7 @@ class EnvironmentValidator(BaseValidator[EnvironmentSnapshot]):
                         detail=f"Line {line_num}: Package '{req.name}' has no version pinned",
                         context={"line": line_num, "package": req.name}
                     )
-                    continue
+                    
                 
                 # Check for exact version pinning
                 has_exact_pin = False
