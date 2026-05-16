@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 
 from core.case.domain.enums.env_snapshot_type import EnvSnapshotType
 
