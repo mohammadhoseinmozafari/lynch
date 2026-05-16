@@ -10,7 +10,7 @@ class ValidationReport (BaseModel):
     Complete result of validation.
     This is the value object returned by Validator.validate().
     """
-    validator_name : str
+    validator_name : str = Field(default= 'ValidatorName', max_length=50)
     errors : List[ValidationError] = Field(default_factory=list)
     warnings : List[ValidationWarning] = Field(default_factory=list)
 

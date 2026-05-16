@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from graphlib import TopologicalSorter
 from typing import Dict, List, Optional, Generic, TypeVar, Set
-from core.shared.validators.validation_report import RuleSeverity, ValidationStatus,ValidationRule, ValidationReport, WarningSeverity
-
-
+from core.shared.domain.value_objects.validation_rule import ValidationRule
+from core.shared.domain.enums.validation_status import ValidationStatus
+from core.shared.domain.value_objects.validation_report import ValidationReport
+from core.shared.domain.enums.rule_severity import RuleSeverity
+from core.shared.domain.enums.warning_severity import WarningSeverity
 T = TypeVar('T')
 
 class BaseValidator(ABC, Generic[T]):

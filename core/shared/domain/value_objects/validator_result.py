@@ -8,7 +8,7 @@ from typing import (
     Dict,
 
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class ValidatorResult(BaseModel):
     """
@@ -22,7 +22,7 @@ class ValidatorResult(BaseModel):
     error: Optional[Exception] = None
     execution_time_ms: float = 0.0
     rule_statuses: Dict[str, ValidationStatus] = Field(default_factory=dict)
-    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     @property
     def has_errors(self) -> bool:
         return self.report is not None and self.report.has_errors

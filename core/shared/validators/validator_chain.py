@@ -1,11 +1,9 @@
 from datetime import datetime, timezone
 import traceback
-import uuid
 
 from pydantic import (
     BaseModel, 
-    Field,
-    model_validator
+    Field
 )
 
 from typing import (
@@ -20,7 +18,6 @@ import logging
 
 from core.shared.domain.enums.validation_status import ValidationStatus
 from core.shared.domain.enums.validator_exec_status import ValidatorExecutionStatus
-from core.shared.domain.enums.warning_severity import WarningSeverity
 from core.shared.domain.value_objects.aggregated_validation import AggregatedValidation
 from core.shared.domain.value_objects.validator_result import ValidatorResult
 from core.shared.validators import ValidatorAdapter

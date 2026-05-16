@@ -52,7 +52,7 @@ class EnvironmentValidator(BaseValidator[EnvironmentSnapshot]):
             description="Validate PIP lock file format and pinning",
             severity=RuleSeverity.BLOCKING,
             func=self._validate_pip_lock_format,
-            dependencies={"validate_specification_not_empty"}
+            dependencies=set()
         ))
         
         self.register_rule(ValidationRule(
@@ -60,7 +60,7 @@ class EnvironmentValidator(BaseValidator[EnvironmentSnapshot]):
             description="Validate conda-lock JSON format and pinning",
             severity=RuleSeverity.BLOCKING,
             func=self._validate_conda_lock_format,
-            dependencies={"validate_specification_not_empty"}
+            dependencies=set()
         ))
     
         

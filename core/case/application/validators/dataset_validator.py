@@ -8,7 +8,6 @@ from core.shared.domain.value_objects.validation_rule import ValidationRule
 from core.shared.validators import BaseValidator
 
 from core.case.domain.errors.dataset_errors import DatasetErrorCode,DatasetWarningCode
-from core.case.domain.value_objects.data_profile_stats import NumericStats, CategoricalStats
 
 
 class DatasetValidator(BaseValidator[DatasetBinding]):
