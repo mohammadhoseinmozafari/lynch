@@ -9,4 +9,3 @@ class CodeSnapshot (BaseModel) :
     git_branch : Optional[str]
     uncommitted_diff : Optional[str]
     training_command : Optional[str]
-    code_snapshot_hash : Optional[str]
