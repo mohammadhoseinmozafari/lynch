@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class EvidenceType(str, Enum):
+    DATA_PROFILE_CHECK = "DATA_PROFILE_CHECK"
     STATISTICAL_TEST = "STATISTICAL_TEST"
     DISTRIBUTION_COMPARISON = "DISTRIBUTION_COMPARISON"
       

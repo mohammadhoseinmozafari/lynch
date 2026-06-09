@@ -39,7 +39,6 @@ class Finding (BaseModel):
     description : str = Field (min_length=1, max_length= 255)
 
     evidence : List[Evidence] = Field(min_length= 1 ,default_factory=list) 
-    recommendations : List[Recommendation] = Field(default_factory= list)
 
     model_id : Optional[str] = None
     dataset_id : Optional[str] = None
