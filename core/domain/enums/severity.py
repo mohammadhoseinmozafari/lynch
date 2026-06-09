@@ -6,6 +6,7 @@ class Severity (Enum) :
     MEDIUM = 2
     HIGH = 3
     CRITICAL = 4
+    INFO = 5
     
     @classmethod 
     def from_score (cls, score: float , thresholds : Optional[Dict] = None) -> 'Severity':
