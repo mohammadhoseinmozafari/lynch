@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
@@ -34,9 +36,9 @@ class HealthScore(BaseModel) :
         False
     """
 
-    overall : float = Field(default= 100.0, ge = 0.0 , le= 100.0)
+    overall : float = Field(ge = 0.0 , le= 100.0)
     breakdown : Dict[str, float] = Field (default_factory= dict)
-    trend : Optional[float] = Field (default= None)
+    trend : Optional[float] = None
 
     def grade(self) -> str:
         """

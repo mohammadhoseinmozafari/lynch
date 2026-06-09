@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC
 from datetime import datetime
 from typing import List, Optional
@@ -13,7 +15,7 @@ from core.domain.enums.severity import Severity
 
 class Report(ABC, BaseModel)  : 
     """
-    Abstract base class for all health reports produced by investigation engines.
+    Base class for all health reports produced by investigation engines.
 
     This provides a common interface for DataHealthReport, ModelHealthReport,
     and SystemHealthReport. Each subclass defines its own engine identifier
@@ -32,9 +34,9 @@ class Report(ABC, BaseModel)  :
     """
         
     id : UUID = uuid4()
-    engine : InvestigationEngine  = Field(default_factory=InvestigationEngine)
-    findings : List[Finding] = Field(default_factory=list)
-    health_score : HealthScore = Field(default_factory= HealthScore)
+    engine : InvestigationEngine  
+    findings : List[Finding] 
+    health_score : HealthScore 
     recommendations : List[Recommendation] = Field (default_factory= list)
     generated_at : datetime = Field(default_factory=datetime.now)
     dataset_id : Optional[str] = None
