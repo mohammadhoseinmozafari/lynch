@@ -16,7 +16,7 @@ class Evidence(BaseModel) :
         chart_data: Optional pre-computed chart data for visualization.
     """
     type : EvidenceType 
-    payload: Dict[str, Any] 
+    payload: Any 
     samples : Optional[List[Dict]] = None
     statistics : Optional[Dict] = None
     chart_data: Optional[Dict] = None
