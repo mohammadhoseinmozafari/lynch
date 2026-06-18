@@ -63,6 +63,35 @@ class EvidenceNode(BaseNode):
     supports_types:     list[str] = field(default_factory=list)  # hypothesis types it can activate
 
 
+class PatternNode(BaseNode):
+    """
+    A recognized semantic structure sitting between evidences and
+    hypotheses. Carries graded confidence, computed by the same
+    belief-propagation machinery as a HypothesisNode — there is no
+    boolean present/absent state.
+
+    level distinguishes primitive (L1) / structural (L2) / behavioral
+    (L3) patterns, purely for organization and UI grouping — it does
+    NOT change how propagation works, since edges already encode the
+    actual dependency structure.
+    """
+    node_type:       NodeType  = NodeType.PATTERN   # new enum member, see below
+    pattern_type:    str       = ""    # e.g. "LocalizedAnomaly", "PredictiveMissingness"
+    level:           int       = 1     # 1 = primitive, 2 = structural, 3 = behavioral
+    claim:           str       = ""    # "income missingness is concentrated in new accounts"
+    subject:         "Subject" = None  # what the pattern is about
+
+    confidence:          float = 0.0   # posterior, same semantics as HypothesisNode.confidence
+    confidence_history:  list  = field(default_factory=list)
+
+    # Provenance — what fed this pattern (observations and/or lower patterns)
+    composed_from:       list[str] = field(default_factory=list)  # node IDs
+    recognizer_id:        str       = ""
+
+    status:    NodeStatus = NodeStatus.ACTIVE  # patterns skip DORMANT; they
+                                                # exist the moment a recognizer fires
+
+
 class HypothesisNode(BaseNode):
     """
     The central reasoning unit. A candidate explanation for
