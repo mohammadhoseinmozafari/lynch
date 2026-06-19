@@ -13,9 +13,9 @@ class PatternTemplateCategory (str, Enum):
     MISSINGNESS = 'missingness'
 
 class PatternLevel (Enum):
-    PRIMITIVE = 1
-    STRUCTURAL = 2
-    BEHAVIORAL = 3
+    ATOMIC = 1
+    COMPOSITE = 2
+    SEMANTIC = 3
 
 
 

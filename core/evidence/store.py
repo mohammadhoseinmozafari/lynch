@@ -1,10 +1,16 @@
-
+from __future__ import annotations
 
 from typing import List, Optional
-from uuid import UUID
 
 from core.domain.entities.evidence import Evidence
 from core.domain.enums.evidence_type import EvidenceType
+from typing import (
+    List,
+    Optional
+    )
+
+from core.evidence.registry import BaseEvidenceRegistry
+
 
 
 class EvidenceStore:
@@ -40,7 +46,7 @@ class EvidenceStore:
             evidence_type : EvidenceType
             ) -> List[Evidence] :
         
-        evidences = self.registry.by_type (evidence_type)
+        evidences = self.registry.get_by_type (evidence_type)
         return evidences
     
     def by_collector (
