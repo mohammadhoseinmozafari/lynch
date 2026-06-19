@@ -1,13 +1,8 @@
+from __future__ import annotations
 from pydantic import Field, BaseModel
-from enum import Enum
-from typing import Any, Dict
+from typing import Dict
 from uuid import uuid4
-
-class ObservationType (str, Enum):
-    COLUMN_MISSINGNESS = "COLUMN_MISSINGNESS" 
-    ROWS_MISSINGNESS =  "ROWS_MISSINGNESS" 
-    MISSINGNESS_DISTRIBUTION = "MISSINGNESS_DISTRIBUTION"
-
+from core.observation.type import ObservationType
 
 class Observation(BaseModel):
     
