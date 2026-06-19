@@ -1,14 +1,18 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Any, Dict, List
 import pandas as pd
 
 @dataclass
 class ColumnMissingRateProfile:
     column_name : str
+    missing_rate : float
     missing_count : int
     non_missing_count : int
     total_count : int
-    missing_rate : float
+    
+
+    def to_dict(self) -> Dict[str, float]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
 
 @dataclass
 class RowsMissingRateProfile:
@@ -23,6 +27,10 @@ class RowsMissingRateProfile:
     high_missing_rate_rows_rate : float
     high_missing_rate_rows_sample_indices : List[int]
 
+    def to_dict(self) -> Dict[str, float]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
+
+
 @dataclass
 class MissingnessDistributionProfile:
     mean_missing_rate : float
@@ -35,6 +43,9 @@ class MissingnessDistributionProfile:
     p90_missing_rate : float
     p95_missing_rate : float
     p99_missing_rate : float
+
+    def to_dict(self) -> Dict[str, float]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
 
 
 class MissingRateProfiler:
