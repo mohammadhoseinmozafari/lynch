@@ -14,8 +14,7 @@ class SignalExtractor(ABC):
 
 
     id: str 
-    signal_type : SignalType
-    supporting_type : ObservationType
+    supporting_type : List[ObservationType]
     
     def __init__(self) -> None:
 

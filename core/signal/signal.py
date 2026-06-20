@@ -20,6 +20,8 @@ class Signal(BaseModel) :
     id : str  = Field (default_factory= lambda : str(ulid()))
 
     signal_type : SignalType
+    
+    value : float = Field (ge = 0.0 , le = 1.0)
 
     source_observation_ids :  List[str]
     
