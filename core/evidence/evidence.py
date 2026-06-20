@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 from pydantic import BaseModel, Field
 from core.domain.enums.evidence_type import EvidenceType
+from core.observation.observation import Observation
 
 
 class Evidence(BaseModel) :
@@ -16,12 +17,9 @@ class Evidence(BaseModel) :
         statistics: Optional summary statistics.
         chart_data: Optional pre-computed chart data for visualization.
     """ 
-    id : str = Field (default_factory= lambda : str(uuid4()))
+    id : str #same as the source observation id
+    source_observation_id :  str
+    normalized_vector_id : str
+    normalization_record_id : str
+    promoted_by : str
 
-    type : EvidenceType 
-    payload: Any 
-    collector : str 
-    samples : Optional[List[Dict]] = None
-    statistics : Optional[Dict] = None
-    chart_data: Optional[Dict] = None
-    
