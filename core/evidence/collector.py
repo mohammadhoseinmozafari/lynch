@@ -7,7 +7,7 @@ from core.evidence.evidence_type import EvidenceType
 class EvidenceCollector(ABC):
 
     id: str
-    observation_type : EvidenceType
+    evidence_type : EvidenceType
     
     def __init__(self) -> None:
 
