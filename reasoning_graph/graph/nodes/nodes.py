@@ -1,22 +1,22 @@
 from __future__ import annotations
 from dataclasses import dataclass , field
 from datetime import datetime
-from typing import Dict, Optional
-from uuid import UUID
-import uuid
+from typing import  Dict, Optional
+from ulid import ulid
 
 from pydantic import BaseModel
-from core.domain.entities.evidence import Evidence
+from core.evidence.evidence import Evidence
+from core.observation.observation import Observation
 from reasoning_graph.graph.nodes.node_status import NodeStatus
 from reasoning_graph.graph.nodes.node_type import NodeType
-from core.domain.enums.evidence_type import EvidenceType
+from core.evidence.evidence_type import EvidenceType
 
 class BaseNode(BaseModel):
     """
     Abstract base for every node in the reasoning graph.
     All nodes share identity, timing, and status tracking.
     """
-    id:           UUID            = field(default_factory=lambda: uuid.uuid4())    
+    id:           str               
     
     node_type:    NodeType       
     status:       NodeStatus     = NodeStatus.INACTIVE
@@ -29,38 +29,25 @@ class BaseNode(BaseModel):
     
     metadata:     Dict           = field(default_factory=dict)
 
-
-
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.id is None:
+            self.id = str(ulid())
+        self.touch()
+    
     def touch(self) -> None:
         """Update the modified timestamp."""
         self.updated_at = datetime.now()
 
 
 
-class EvidenceNode(BaseNode):
+class ObservationNode(BaseNode):
     """
-    Represents a single piece of evidence collected from
+    Represents a single piece of observation collected from
     any subsystem (profiling, leakage, label quality, etc.).
-
-    Reliability score models how trustworthy the measurement
-    method is — a statistical test on 100k rows scores higher
-    than a heuristic pattern match on 50 rows.
     """
-    node_type:          NodeType  = NodeType.EVIDENCE
-    
-    evidence_type:      EvidenceType
-    evidence :          Evidence           # e.g. "MISSING_RATE", "KS_STATISTIC"
-    value:              float    
-    reliability:        float       # [0,1] — how trustworthy is this source
-   
-    payload:            dict      = field(default_factory=dict)  # full payload
-    
-    collected_at:       datetime  = field(default_factory=datetime.now)
-    collector_id:       UUID      =  field(default_factory=lambda: uuid.uuid4()) # which subsystem produced it
-    
-    subject:            str       = ""   # feature name / segment / model layer
-    
-    supports_types:     list[str] = field(default_factory=list)  # hypothesis types it can activate
+    node_type:          NodeType  = NodeType.OBSERVATION
+    observation : Observation
 
 
 class PatternNode(BaseNode):

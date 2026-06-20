@@ -1,8 +1,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, List
-import uuid
+from typing import List
+from ulid import ulid
 from core.observation.observation import Observation
 from core.observation.type import ObservationType
 
@@ -16,7 +16,7 @@ class ObservationCollector(ABC):
     def __init__(self) -> None:
 
         super().__init__()
-        self.id = f"{self.__class__.__name__}_{uuid.uuid4()}"
+        self.id = str(ulid())
         
     @abstractmethod
     def collect (self, context) -> List[Observation]:

@@ -2,12 +2,12 @@ from __future__ import annotations
 from datetime import datetime
 from pydantic import Field, BaseModel
 from typing import Dict, Any
-from uuid import uuid4
+from ulid import ulid
 from core.observation.type import ObservationType
 
 class Observation(BaseModel):
     
-    id : str = Field (default_factory= lambda : str(uuid4()))
+    id : str = Field (default_factory= lambda : str(ulid()))
 
     type : ObservationType
     payload : Dict[Any , Any] = Field(default_factory=dict)

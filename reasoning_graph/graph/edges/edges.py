@@ -1,7 +1,7 @@
 
 from enum import Enum
-from typing import Dict, Optional
-from uuid import UUID, uuid4 
+from typing import Dict
+from ulid import ulid
 from datetime import datetime
 
 from reasoning_graph.graph.edges.edge_type import EdgeType
@@ -14,7 +14,7 @@ class BaseEdge(BaseModel):
     The weight encodes the strength of the relationship —
     its exact meaning depends on EdgeType (see subclasses).
     """
-    id:          UUID      = Field(default_factory=lambda: uuid4())
+    id:          str      = Field(default_factory=lambda: str(ulid()))
 
     edge_type:   EdgeType 
 
