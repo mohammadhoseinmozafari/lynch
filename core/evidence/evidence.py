@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
 from uuid import uuid4
 from pydantic import BaseModel, Field
-from core.domain.enums.evidence_type import EvidenceType
-from core.observation.observation import Observation
+
+from core.evidence.evidence_type import EvidenceType
+
 
 
 class Evidence(BaseModel) :
@@ -17,9 +17,13 @@ class Evidence(BaseModel) :
         statistics: Optional summary statistics.
         chart_data: Optional pre-computed chart data for visualization.
     """ 
-    id : str #same as the source observation id
+    id : str  = Field (default_factory= lambda : str(uuid4))
+
+    evidence_type : EvidenceType
     source_observation_id :  str
+
     normalized_vector_id : str
     normalization_record_id : str
-    promoted_by : str
+    
+    collector_id : str
 

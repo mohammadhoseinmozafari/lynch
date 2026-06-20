@@ -1,13 +1,13 @@
 from abc import ABC , abstractmethod
 from typing import List
 
-from core.domain.entities.evidence import Evidence
-from core.domain.enums.evidence_type import EvidenceType
+from core.evidence.evidence import Evidence
+from core.evidence.evidence_type import EvidenceType
 
 class BaseEvidenceRegistry (ABC):
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, observation_registry ) -> None:
+        
 
     @abstractmethod
     def register(self, evidence : Evidence) -> None:

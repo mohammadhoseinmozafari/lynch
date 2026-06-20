@@ -1,21 +1,24 @@
 from threading import RLock
-from typing import Callable, Dict, List, Set
+from typing import Any, Callable, Dict, List, Set
 
-from core.domain.entities.evidence import Evidence
+from core.evidence.evidence import Evidence
 from core.domain.enums.evidence_type import EvidenceType
 from core.evidence.registry import BaseEvidenceRegistry
 
 
 class InMemoryEvidenceRegistry(BaseEvidenceRegistry):
 
-    def __init__(self) -> None:
-
+    
+        
+    def __init__(self, observation_registry) -> None:
+        super().__init__(observation_registry)
+        
         # Primary storage
         self._store: Dict[str, Evidence] = {}
 
         # Indexes (this is what makes it scalable in-memory)
-        self._by_type: Dict[EvidenceType, Set[str]] 
-        self._by_collector: Dict[str, Set[str]] 
+        self._by_type: Dict[EvidenceType, Set[str]] = defaultdict(set)
+        self._by_collector: Dict[str, Set[str]] = defaultdict(set)
 
         # NOTE: We should add subject index later if subject would be added to evidence class
 
