@@ -27,6 +27,8 @@ class RowsMissingRateProfile:
     high_missing_rate_rows_rate : float
     high_missing_rate_rows_sample_indices : List[int]
 
+    sample_size : int
+
     def to_dict(self) -> Dict[str, float]:
         return {field.name: getattr(self, field.name) for field in fields(self)}
 
@@ -78,7 +80,7 @@ class MissingRateProfiler:
         return profile
     
     def profile_rows (self, df: pd.DataFrame , sample_size : int) -> RowsMissingRateProfile:
-        rows_missing_rates = df.isna().mean()
+        rows_missing_rates = df.isna().mean(axis=1)
         full_missing_rows_profile = self.profile_full_missing_rows(rows_missing_rates, sample_size)
         high_missing_rate_rows_profile = self.profile_high_missing_rate_rows(rows_missing_rates, threshold= 0.8, sample_size= sample_size)
 
@@ -89,7 +91,9 @@ class MissingRateProfiler:
             full_missing_rows_sample_indices= full_missing_rows_profile["sample_indices"],
             high_missing_rate_rows_count= high_missing_rate_rows_profile["count"],
             high_missing_rate_rows_rate= high_missing_rate_rows_profile["count"]/ len(df) if len(df) > 0 else 0.0,
-            high_missing_rate_rows_sample_indices= high_missing_rate_rows_profile["sample_indices"]
+            high_missing_rate_rows_sample_indices= high_missing_rate_rows_profile["sample_indices"],
+            sample_size= sample_size
+
         )
     
     def profile_distribution (self, df: pd.DataFrame) -> MissingnessDistributionProfile:
