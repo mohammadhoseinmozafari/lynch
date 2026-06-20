@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from uuid import uuid4
+from ulid import ulid
 from pydantic import BaseModel, Field
 
 from core.signal.type import SignalType
@@ -17,10 +17,12 @@ class Signal(BaseModel) :
         Predictive Missingness
         Distribution Shift Signal.
     """ 
-    id : str  = Field (default_factory= lambda : str(uuid4))
+    id : str  = Field (default_factory= lambda : str(ulid()))
 
     signal_type : SignalType
 
     source_observation_ids :  List[str]
+    
+    normalization_record_id : str = ''
     
     extractor_id : str
