@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, List
 from ulid import ulid
 from pydantic import BaseModel, Field
-from core.signal.enums import SignalCategory
+from core.signal.enums import SignalCategory, SubjectType
 from core.signal.type import SignalType
 
 

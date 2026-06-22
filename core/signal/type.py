@@ -35,17 +35,48 @@ class HealthSignalType (str, Enum) :
 
 class StructuralSignalType (str, Enum) :
     #COLUMN MISSINGNESS SIGNALS
-    LOCALIZED_FEATURE_FAILURE =     "localized_feature_failure"     # One or a few columns are much worse than the rest.
-    GLOBAL_FEATURE_DEGRADATION =    "global_feature_degradation"    # Most columns have similar missing rates.
-    DOMINANT_FEATURE_FAILURE =      "dominant_feature_failure"
-    FEATURE_MISSINGNESS_OUTLIER =   "feature_missingness_outlier"   # The feature is an outlier in missingness.
+    LOCALIZED_FEATURE_FAILURE   =    "localized_feature_failure"     # One or a few columns are much worse than the rest.
+    GLOBAL_FEATURE_DEGRADATION  =    "global_feature_degradation"    # Most columns have similar missing rates.
+    DOMINANT_FEATURE_FAILURE    =    "dominant_feature_failure"
+    FEATURE_MISSINGNESS_OUTLIER =    "feature_missingness_outlier"   # The feature is an outlier in missingness.
     
     # ROWS MISSINGNESS SIGNALS
-    COMPLETE_ROW_CORRUPTION =   "complete_row_corruption"           # Entire records are empty. full_missing_rows_rate > threshold
-    PARTIAL_ROW_CORRUPTION =    "partial_row_corruption"            # Many rows have high but incomplete missingness. high_missing_rate_rows_rate > threshold
-    MIXED_ROW_CORRUPTION  =     "mixed_row_corruption"
+    COMPLETE_ROW_CORRUPTION     =    "complete_row_corruption"       # Entire records are empty. full_missing_rows_rate > threshold
+    PARTIAL_ROW_CORRUPTION      =    "partial_row_corruption"        # Many rows have high but incomplete missingness. high_missing_rate_rows_rate > threshold
+    MIXED_ROW_CORRUPTION        =    "mixed_row_corruption"
     
     # ROWS DIST SIGNALS
-    UNIFORM_ROW_QUALITY  = "uniform_row_quality"            #Almost every row has similar missingness. std < threshold
-    HETROGENEOUS_ROW_QUALITY = "hetrogeneous_row_quality"   # Large variability.    std > threshold
+    UNIFORM_ROW_QUALITY         =   "uniform_row_quality"           #Almost every row has similar missingness. std < threshold
+    HETROGENEOUS_ROW_QUALITY    =   "hetrogeneous_row_quality"      # Large variability.    std > threshold
+    HEAVY_TAIL_ROW_CORRUPTION   =   "heavy_tail_row_corruption"     # A small fraction of rows are extremely damaged.
+    SKEWED_ROW_CORRUPTION       =   "skewed_row_corruption"
+    EXTREME_ROW_FAILURE         =   "extreme_row_failure"
 
+    # COLs DIST SIGNALS\
+    UNIFORM_FEATURE_QUALITY         =   "uniform_feature_quality"
+    HETROGENEOUS_FEATURE_QUALITY    =   "hetrogeneous_feature_quality"
+    HEAVY_TAIL_FEATURE_CORRUPTION   =   "heavy_tail_feature_corruption"    
+    SKEWED_FEATURE_CORRUPTION       =   "skewed_feature_corruption"
+    EXTREME_FEATURE_FAILURE         =   "extreme_feature_failure"
+    
+
+
+
+class BehavioralSignalType(str, Enum):
+
+    # temporal behavior
+    MISSINGNESS_DRIFT = "missingness_drift"
+    MISSINGNESS_SPIKE = "missingness_spike"
+    MISSINGNESS_REGRESSION = "missingness_regression"
+    MISSINGNESS_SEASONALITY = "missingness_seasonality"
+
+    # system-induced behavior
+    PIPELINE_DEPENDENCY_FAILURE = "pipeline_dependency_failure"
+    DOWNSTREAM_PROPAGATION = "downstream_propagation"
+
+    # segment/user behavior
+    SEGMENT_BIASED_MISSINGNESS = "segment_biased_missingness"
+
+    # stability behavior
+    MISSINGNESS_VOLATILITY = "missingness_volatility"
+    MISSINGNESS_STABILITY_BREAK = "missingness_stability_break"
