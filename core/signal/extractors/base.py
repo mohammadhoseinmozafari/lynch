@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import  ABC, abstractmethod
 
-from typing import List
+from typing import Any, List
 from ulid import ulid
 
 from core.observation.observation import Observation
@@ -27,6 +27,9 @@ class SignalExtractor(ABC):
     def extract (self, observations : List[Observation]) -> List:
         raise NotImplementedError
     
+    @property
+    def extractors(self) -> Any:
+        raise NotImplementedError
 
 class HealthSignalExtractor (SignalExtractor):
     
@@ -38,4 +41,7 @@ class HealthSignalExtractor (SignalExtractor):
     def extract(self, observations: List[Observation]) -> List[HealthSignal]:
         raise NotImplementedError
 
+    @property
+    def extractors(self) -> Any:
+        return super().extractors
 

@@ -1,11 +1,16 @@
+from core.signal.type import HealthSignalType
+
 from .base import Signal, SignalCategory
-from core.signal.subject_type import SubjectType
+from core.signal.enums import SubjectType
 from pydantic import Field
 
 class HealthSignal(Signal):
 
-    category: SignalCategory = SignalCategory.HEALTH
 
+    category: SignalCategory = SignalCategory.HEALTH
+    
+    signal_type : HealthSignalType
+    
     subject_type: SubjectType
 
     subject_name: str
