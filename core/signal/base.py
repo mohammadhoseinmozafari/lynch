@@ -4,16 +4,9 @@ from datetime import datetime
 from typing import List
 from ulid import ulid
 from pydantic import BaseModel, Field
-from enum import Enum
+from core.signal.enums import SignalCategory
 from core.signal.type import SignalType
 
-class SignalCategory(Enum , str) :
-    HEALTH = "health"
-    STRUCTURAL = "structural"
-    BEHAVIORAL = "behavioral"
-    RELATIONSHIP = "relationship"
-    DIAGNOSTIC = "diagnostic"
-    CONFIDENCE = "confidence"
 
 
 
@@ -33,6 +26,10 @@ class Signal(BaseModel, ABC) :
     category : SignalCategory
 
     signal_type : SignalType
+    
+    magnitude : float  = Field (ge= 0.0 , le = 1.0) # how unusual / severe
+
+    direction : float = Field (ge = -1.0 , le = 1.0) #. The field exists so one evidence type can carry information in both directions, not just "how anomalous," but which way that anomaly-ness points a hypothesis's confidence.
     
     value : float = Field (ge = 0.0 , le = 1.0)
 
