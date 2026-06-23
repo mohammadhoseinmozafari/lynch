@@ -1,12 +1,13 @@
 from __future__ import annotations
 from abc import ABC
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, List
 from ulid import ulid
 from pydantic import BaseModel, Field
 from core.signal.enums import SignalCategory, SubjectType
 from core.signal.type import SignalType
-
+import pandas as pd
 
 
 
@@ -37,3 +38,7 @@ class Signal(BaseModel, ABC) :
     
     extractor_id : str
     created_at : datetime = Field(default_factory= datetime.now)
+
+@dataclass
+class SignalTable :
+    table : pd.DataFrame
