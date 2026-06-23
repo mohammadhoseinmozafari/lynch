@@ -20,4 +20,4 @@ class Observation(BaseModel):
 
 @dataclass
 class ObservationBatch :
-    batch : pl.DataFrame 
+    df : pl.DataFrame 

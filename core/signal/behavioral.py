@@ -1,4 +1,4 @@
-from core.signal.base import Signal
+from core.signal.signal import Signal
 from core.signal.enums import SignalCategory, SubjectType
 from datetime import datetime
 
@@ -12,7 +12,7 @@ class BehavioralSignal(Signal):
 
     subject_type : SubjectType
     subject_name : str
-    
+
     trend: str
 
     window_start: datetime | None = None

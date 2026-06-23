@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class ObservationType (str, Enum):
-    COLUMN_MISSINGNESS = "COLUMN_MISSINGNESS" 
-    ROWS_MISSINGNESS =  "ROWS_MISSINGNESS" 
-    MISSINGNESS_DISTRIBUTION = "MISSINGNESS_DISTRIBUTION"
-
+    COLUMN_MISSINGNESS                  = "column_missingness" 
+    ROWS_MISSINGNESS                    = "rows_missingness" 
+    ROWS_MISSINGNESS_DISTRIBUTION       = "rows_missingness_distribution"
+    COLUMNS_MISSINGNESS_DISTRIBUTION    = "columns_missingness_distribution"    

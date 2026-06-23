@@ -1,4 +1,4 @@
-from core.signal.base import Signal
+from core.signal.signal import Signal
 from core.signal.enums import SignalCategory
 
 
