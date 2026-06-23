@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional, Protocol, TypeVar
 from core.signal.base import Signal
-from core.signal.processor.context import ExecutionContext
+from core.signal.processors.context import ExecutionContext
 
 
 

@@ -5,7 +5,7 @@ from pydantic import Field, BaseModel
 from typing import Dict, Any
 from ulid import ulid
 from core.observation.type import ObservationType
-import pandas as pd
+import polars as pl
 class Observation(BaseModel):
     
     id : str = Field (default_factory= lambda : str(ulid()))
@@ -20,4 +20,4 @@ class Observation(BaseModel):
 
 @dataclass
 class ObservationBatch :
-    batch : pd.DataFrame 
+    batch : pl.DataFrame 

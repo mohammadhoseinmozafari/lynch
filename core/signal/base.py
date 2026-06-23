@@ -5,9 +5,8 @@ from datetime import datetime
 from typing import Any, List
 from ulid import ulid
 from pydantic import BaseModel, Field
-from core.signal.enums import SignalCategory, SubjectType
-from core.signal.type import SignalType
-import pandas as pd
+from core.signal.enums import SignalCategory
+import polars as pl
 
 
 
@@ -41,4 +40,4 @@ class Signal(BaseModel, ABC) :
 
 @dataclass
 class SignalTable :
-    table : pd.DataFrame
+    table : pl.DataFrame
