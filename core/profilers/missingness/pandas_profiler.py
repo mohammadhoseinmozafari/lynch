@@ -1,57 +1,29 @@
-from dataclasses import dataclass, fields
-from typing import Any, Dict, List
+from __future__ import annotations
+from typing import (
+    Any, 
+    Dict
+)
+
 import pandas as pd
 
-@dataclass
-class ColumnMissingRateProfile:
-    column_name : str
-    missing_rate : float
-    missing_count : int
-    non_missing_count : int
-    total_count : int
-    
+from ulid import ulid
 
-    def to_dict(self) -> Dict[str, float]:
-        return {field.name: getattr(self, field.name) for field in fields(self)}
+from core.profilers.missingness.models import (
+    ColumnMissingRateProfile,
+    RowsMissingRateProfile, 
+    MissingnessDistributionProfile
+)
 
-@dataclass
-class RowsMissingRateProfile:
-    
-    total_rows : int
+from core.profilers.missingness.profiler import (
+    MissingRateProfiler, 
+    ProfilerType
+)
+class PandasMissingRateProfiler(MissingRateProfiler[pd.DataFrame]):
 
-    full_missing_rows_count : int
-    full_missing_rows_rate : float
-    full_missing_rows_sample_indices : List[int]
-
-    high_missing_rate_rows_count : int
-    high_missing_rate_rows_rate : float
-    high_missing_rate_rows_sample_indices : List[int]
-
-    sample_size : int
-
-    def to_dict(self) -> Dict[str, float]:
-        return {field.name: getattr(self, field.name) for field in fields(self)}
-
-
-@dataclass
-class MissingnessDistributionProfile:
-    mean_missing_rate : float
-    median_missing_rate : float
-    std_missing_rate : float
-
-    min_missing_rate : float
-    max_missing_rate : float
-
-    p90_missing_rate : float
-    p95_missing_rate : float
-    p99_missing_rate : float
-
-    def to_dict(self) -> Dict[str, float]:
-        return {field.name: getattr(self, field.name) for field in fields(self)}
-
-
-class MissingRateProfiler:
-
+    def __init__(self) -> None:
+        super().__init__()
+        self.id = str(ulid())
+        self.profiler_type = ProfilerType.PANDAS
    
     
     def profile_columns (self, df : pd.DataFrame) -> Dict[str, ColumnMissingRateProfile]:
