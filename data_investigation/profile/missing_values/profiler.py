@@ -96,9 +96,26 @@ class MissingRateProfiler:
 
         )
     
-    def profile_distribution (self, df: pd.DataFrame) -> MissingnessDistributionProfile:
+    def profile_rows_distribution (self, df: pd.DataFrame) -> MissingnessDistributionProfile:
 
         rows_missing_rates = df.isna().mean(axis=1)
+        
+
+        return MissingnessDistributionProfile(
+            mean_missing_rate=float(rows_missing_rates.mean()),
+            median_missing_rate=float(rows_missing_rates.median()),
+            std_missing_rate=float(rows_missing_rates.std()),
+            min_missing_rate=float(rows_missing_rates.min()),
+            max_missing_rate=float(rows_missing_rates.max()),
+            p90_missing_rate=float(rows_missing_rates.quantile(0.90)),
+            p95_missing_rate=float(rows_missing_rates.quantile(0.95)),
+            p99_missing_rate=float(rows_missing_rates.quantile(0.99)),
+        
+        )
+
+    def profile_columns_distribution (self, df: pd.DataFrame) -> MissingnessDistributionProfile:
+
+        rows_missing_rates = df.isna().mean(axis=0)
         
 
         return MissingnessDistributionProfile(

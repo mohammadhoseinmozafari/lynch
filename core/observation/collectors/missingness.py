@@ -112,12 +112,12 @@ class RowsMissingnessObservationCollector (ObservationCollector) :
 
         )
 
-class MissingnessDistributionObservationCollector (ObservationCollector) :
+class RowsMissingnessDistributionObservationCollector (ObservationCollector) :
 
     def __init__(self, profiler: MissingRateProfiler) -> None:
         super().__init__() 
         
-        self.observation_type = ObservationType.MISSINGNESS_DISTRIBUTION
+        self.observation_type = ObservationType.ROWS_MISSINGNESS_DISTRIBUTION
         self.method_name = ObservationCollectorMethod.NULL_RATE
 
         self._profiler = profiler
@@ -127,7 +127,7 @@ class MissingnessDistributionObservationCollector (ObservationCollector) :
 
         observations : List[Observation] = []
 
-        missingness_distribution_profile = self._profiler.profile_distribution(df)
+        missingness_distribution_profile = self._profiler.profile_rows_distribution(df)
 
         distribution_evidence = self.build_observation (missingness_distribution_profile)
 
@@ -137,7 +137,38 @@ class MissingnessDistributionObservationCollector (ObservationCollector) :
     
     def build_observation (self , profile : MissingnessDistributionProfile ) -> Observation:
         
+
+        return Observation (
+            type = self.observation_type,
+            payload = profile.to_dict(),
+            reliability= 1.0,
+            collector_id= self.id
+            )
+
+class ColumnsMissingnessDistributionObservationCollector (ObservationCollector) :
+
+    def __init__(self, profiler: MissingRateProfiler) -> None:
+        super().__init__() 
         
+        self.observation_type = ObservationType.COLUMNS_MISSINGNESS_DISTRIBUTION
+        self.method_name = ObservationCollectorMethod.NULL_RATE
+
+        self._profiler = profiler
+    
+    def collect (self, context) -> List[Observation]:
+        df = context.dataset
+
+        observations : List[Observation] = []
+
+        missingness_distribution_profile = self._profiler.profile_columns_distribution(df)
+
+        distribution_evidence = self.build_observation (missingness_distribution_profile)
+
+        observations.append(distribution_evidence)
+        
+        return observations
+    
+    def build_observation (self , profile : MissingnessDistributionProfile ) -> Observation:
         
 
         return Observation (
@@ -146,6 +177,7 @@ class MissingnessDistributionObservationCollector (ObservationCollector) :
             reliability= 1.0,
             collector_id= self.id
             )
+
 
 
 
