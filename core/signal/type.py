@@ -45,6 +45,7 @@ class HealthSignalType (str, Enum) :
                                                                     #   ~Formula: 1 - p95_missing_rate
 
 class StructuralSignalType (str, Enum) :
+    
     #COLUMN MISSINGNESS SIGNALS
     LOCALIZED_FEATURE_FAILURE   =    "localized_feature_failure"    #   *One or a few columns are much worse than the rest.  
                                                                     #   ~Formula : z_score = (column_missing_rate - dataset_mean) / dataset_std z_score > 2
@@ -90,18 +91,18 @@ class StructuralSignalType (str, Enum) :
 class BehavioralSignalType(str, Enum):
 
     # temporal behavior
-    MISSINGNESS_DRIFT = "missingness_drift"
-    MISSINGNESS_SPIKE = "missingness_spike"
-    MISSINGNESS_REGRESSION = "missingness_regression"
-    MISSINGNESS_SEASONALITY = "missingness_seasonality"
+    MISSINGNESS_DRIFT       = "missingness_drift"                           #   *Detects increasing or decreasing missingness.
+    MISSINGNESS_SPIKE       = "missingness_spike"                           #   *Detects sudden change in missingness.
+    MISSINGNESS_REGRESSION  = "missingness_regression"                      #   *Shows improvment signal in missingness.  
+    MISSINGNESS_SEASONALITY = "missingness_seasonality"                     
 
     # system-induced behavior
-    PIPELINE_DEPENDENCY_FAILURE = "pipeline_dependency_failure"
-    DOWNSTREAM_PROPAGATION = "downstream_propagation"
+    PIPELINE_DEPENDENCY_FAILURE = "pipeline_dependency_failure"             #   *Detects upstream system failure causing missingness.
+    DOWNSTREAM_PROPAGATION      = "downstream_propagation"                  #   *Detects downstream system failure causing missingness.
 
     # segment/user behavior
-    SEGMENT_BIASED_MISSINGNESS = "segment_biased_missingness"
+    SEGMENT_BIASED_MISSINGNESS  = "segment_biased_missingness"              #   *Detects if missingness is concentrated in a subgroup.
 
     # stability behavior
-    MISSINGNESS_VOLATILITY = "missingness_volatility"
-    MISSINGNESS_STABILITY_BREAK = "missingness_stability_break"
+    MISSINGNESS_VOLATILITY      = "missingness_volatility"                  #   *Signal that measures the instability over time. (using std)
+    MISSINGNESS_STABILITY_BREAK = "missingness_stability_break"             #   *Signal that stability has broken
