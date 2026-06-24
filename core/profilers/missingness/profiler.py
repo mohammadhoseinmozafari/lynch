@@ -1,14 +1,13 @@
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, Protocol, TypeVar , Dict
+from typing import Generic, TypeVar , Dict
 
 
 from core.profilers.missingness.models import ColumnMissingRateProfile, MissingnessDistributionProfile, RowsMissingRateProfile
 
 
-class ProfilerType (Enum, str) :
+class ProfilerType (str, Enum) :
     PANDAS = 'pandas'
     POLARS = 'polars'
 

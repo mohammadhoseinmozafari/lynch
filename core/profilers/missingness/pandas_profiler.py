@@ -120,7 +120,7 @@ class PandasMissingRateProfiler(MissingRateProfiler[pd.DataFrame]):
     
     def profile_high_missing_rate_rows (self, rows_missing_rates: pd.Series, threshold: float, sample_size: int) -> Dict[str, Any]:
         
-        high_missing_rate_rows = rows_missing_rates[rows_missing_rates >= threshold]
+        high_missing_rate_rows = rows_missing_rates[(rows_missing_rates >= threshold) & (rows_missing_rates < 1.0) ]
         high_missing_count = len(high_missing_rate_rows)
         sample_indices = high_missing_rate_rows.sample(
             (min(high_missing_count, sample_size)),
