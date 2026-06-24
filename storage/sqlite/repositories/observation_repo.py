@@ -1,31 +1,61 @@
 import json
 import time
-
-
-class ObservationRepository:
-    def __init__(self, db):
+from typing import Any, List
+from core.observation.observation import Observation
+from core.observation.type import ObservationType
+from storage.interfaces.observation_store import ObservationStore
+from storage.sqlite.connection import SQLiteDB
+class ObservationRepository(ObservationStore):
+    def __init__(self, db : SQLiteDB) -> None:
         self.db = db
 
-    def insert(self, observation):
+    def insert(self, observation : Observation)-> None: 
         with self.db.connect() as conn:
             conn.execute(
                 """
                 INSERT INTO observations
-                (id, timestamp, observation_type, subject_type, subject_name, reliability, payload)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (id,  observation_type,  payload,  reliability, collected_at, collector_id)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    str(observation.id),
-                    int(time.time()),
-                    observation.type,
-                    observation.subject_type,
-                    observation.subject_name,
-                    observation.reliability,
-                    json.dumps(observation.payload),
-                ),
+                        observation.id,
+                        observation.type,
+                        json.dumps(observation.payload),
+                        observation.reliability,
+                        observation.collected_at,
+                        observation.collector_id
+                        
+                        
+                    ),
             )
 
-    def fetch_by_type(self, observation_type: str):
+    def insert_many(self, observations: List[Observation]) -> None:
+        
+        with self.db.connect() as conn:
+        
+            conn.executemany(
+                """
+                INSERT INTO observations
+                (id,  observation_type,  payload,  reliability, collected_at, collector_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        observation.id,
+                        observation.type,
+                        json.dumps(observation.payload),
+                        observation.reliability,
+                        observation.type,
+                        observation.collected_at,
+                        observation.collector_id
+                        
+                        
+                    )
+                    for observation in observations
+                ],
+            )
+
+    def fetch_by_type(self, observation_type: ObservationType) -> List[Any]:
         with self.db.connect() as conn:
             return conn.execute(
                 """
@@ -35,7 +65,7 @@ class ObservationRepository:
                 (observation_type,),
             ).fetchall()
 
-    def fetch_all(self):
+    def fetch_all(self) -> List[Any]:
         with self.db.connect() as conn:
             return conn.execute(
                 "SELECT * FROM observations"

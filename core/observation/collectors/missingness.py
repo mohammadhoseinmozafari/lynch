@@ -11,9 +11,9 @@ from core.observation.collector import (
 )
 from core.observation.observation import Observation
 from core.observation.type import ObservationType
-from data_investigation.profile.missing_values.profiler import (
-    ColumnMissingRateProfile, 
-    MissingRateProfiler, 
+from core.profilers.missingness.profiler import  MissingRateProfiler
+from core.profilers.missingness.models import (
+    ColumnMissingRateProfile,  
     MissingnessDistributionProfile, 
     MissingnessDistributionProfile, 
     RowsMissingRateProfile, 

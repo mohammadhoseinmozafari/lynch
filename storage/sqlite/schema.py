@@ -1,14 +1,12 @@
 OBSERVATIONS_TABLE = """
 CREATE TABLE IF NOT EXISTS observations (
     id TEXT PRIMARY KEY,
-    timestamp INTEGER,
-
     observation_type TEXT,
-    subject_type TEXT,
-    subject_name TEXT,
-
-    reliability REAL,
     payload TEXT
+    reliability REAL,
+    collected_at INTEGER,
+    collector_id TEXT
+    
 );
 """
 
