@@ -37,7 +37,7 @@ class ObservationRepository(ObservationStore):
                 """
                 INSERT INTO observations
                 (id,  observation_type,  payload,  reliability, collected_at, collector_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 [
                     (
@@ -45,7 +45,6 @@ class ObservationRepository(ObservationStore):
                         observation.type,
                         json.dumps(observation.payload),
                         observation.reliability,
-                        observation.type,
                         observation.collected_at,
                         observation.collector_id
                         

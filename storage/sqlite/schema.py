@@ -2,7 +2,7 @@ OBSERVATIONS_TABLE = """
 CREATE TABLE IF NOT EXISTS observations (
     id TEXT PRIMARY KEY,
     observation_type TEXT,
-    payload TEXT
+    payload TEXT,
     reliability REAL,
     collected_at INTEGER,
     collector_id TEXT
@@ -27,22 +27,8 @@ CREATE TABLE IF NOT EXISTS signals (
 );
 """
 
-INVESTIGATIONS_TABLE = """
-CREATE TABLE IF NOT EXISTS investigations (
-    id TEXT PRIMARY KEY,
-    timestamp INTEGER,
-
-    scope TEXT,
-    status TEXT,
-
-    root_cause TEXT,
-    summary TEXT
-);
-"""
-
 
 SCHEMA = [
     OBSERVATIONS_TABLE,
     SIGNALS_TABLE,
-    INVESTIGATIONS_TABLE,
 ]
