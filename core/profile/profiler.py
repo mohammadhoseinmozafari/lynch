@@ -13,10 +13,10 @@ class ProfilerType (str, Enum) :
     MODEL = 'model'
 
 
-class Profiler (ABC) :
+class DatasetProfiler (ABC) :
 
     id : str
-    profiler_type :  ProfilerType
+    profiler_type :  ProfilerType = ProfilerType.DATASET
 
     
     @abstractmethod
