@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from ulid import ulid
 from pydantic import BaseModel, Field
 from core.signal.enums import SignalCategory
-import polars as pl
+import pandas as pd
 
 
 
@@ -77,4 +77,4 @@ class Signal(BaseModel, ABC) :
 
 @dataclass
 class SignalTable :
-    table : pl.DataFrame
+    table : pd.DataFrame
