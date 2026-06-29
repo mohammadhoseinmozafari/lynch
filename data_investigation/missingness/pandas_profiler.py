@@ -18,7 +18,7 @@ from core.profilers.missingness.profiler import (
     MissingRateProfiler, 
     ProfilerType
 )
-class PandasMissingRateProfiler(MissingRateProfiler[pd.DataFrame]):
+class MissingRateProfiler(MissingRateProfiler[pd.DataFrame]):
 
     def __init__(self) -> None:
         super().__init__()
