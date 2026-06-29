@@ -1,21 +1,23 @@
-from .profilers import (
+from .models import (
 	ColumnMissingRateProfile,
-	ColumnMissingRateProfiler,
-	DistributionMissingRateProfiler,
-	MissingRateProfiler,
 	MissingnessDistributionProfile,
 	RowsMissingRateProfile,
-	RowsMissingRateProfiler,
 	SegmentProfile,
+)
+from .rate_profiler import (
+	MissingRateProfiler,
+    ColumnMissingRateProfiler,
+	DistributionMissingRateProfiler,
+	RowsMissingRateProfiler,
 )
 
 __all__ = [
 	"ColumnMissingRateProfile",
+	"MissingnessDistributionProfile",
+	"RowsMissingRateProfile",
+	"SegmentProfile",
 	"ColumnMissingRateProfiler",
 	"DistributionMissingRateProfiler",
 	"MissingRateProfiler",
-	"MissingnessDistributionProfile",
-	"RowsMissingRateProfile",
 	"RowsMissingRateProfiler",
-	"SegmentProfile",
 ]

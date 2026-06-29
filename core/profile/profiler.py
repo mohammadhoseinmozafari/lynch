@@ -16,10 +16,11 @@ class DatasetProfiler (ABC) :
     Base abstract class for all dataset profilers
     """
 
-    profiler_type :  ProfilerType = ProfilerType.DATASET
+   
     def __init__(self) -> None:
         super().__init__()
         self.id = str(ulid())
+        self.profiler_type :  ProfilerType = ProfilerType.DATASET
     
     @abstractmethod
     def profile (self, df : pd.DataFrame)  -> Any:
