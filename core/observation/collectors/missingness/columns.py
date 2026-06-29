@@ -1,9 +1,10 @@
-
 from typing import List
-
-from core.observation.collector import ObservationCollector, ObservationCollectorMethod
-from core.observation.observation import Observation
-from core.observation.type import ObservationType
+from core.observation import (
+    Observation,
+    ObservationType,
+    ObservationCollector, 
+    ObservationCollectorMethod
+    )
 from core.signal.enums import SubjectType
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, fields
-from typing import  Dict, List
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -14,6 +14,7 @@ class ColumnMissingRateProfile:
 
     def to_dict(self) -> Dict[str, float]:
         return {field.name: getattr(self, field.name) for field in fields(self)}
+
 
 @dataclass
 class RowsMissingRateProfile:
@@ -48,4 +49,24 @@ class MissingnessDistributionProfile:
     p99_missing_rate : float
 
     def to_dict(self) -> Dict[str, float]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
+
+
+@dataclass
+class SegmentProfile:
+    rules: List[str]
+
+    row_count: int
+    coverage: float
+
+    missing_count: int
+    missing_rate: float
+
+    global_missing_rate: float
+
+    contribution: float
+
+    lift: float
+
+    def to_dict(self) -> Dict[str, Any]:
         return {field.name: getattr(self, field.name) for field in fields(self)}

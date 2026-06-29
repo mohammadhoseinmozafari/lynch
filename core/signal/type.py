@@ -11,7 +11,6 @@ class SignalType(str, Enum):
       
 
 class HealthSignalType (str, Enum) :
-
     # FEATURE MISSINGNESS HEALTH
     FEATURE_COMPLETENESS            = "feature_completeness"            #   ~Formula : 1- missing_rate
     FEATURE_MISSINGNESS             = "feature_missingness"             #   ~Formula : missing_rate
