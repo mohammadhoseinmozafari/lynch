@@ -1,3 +1,21 @@
+"""
+Missingness Structural Signal Processors
+========================================
+
+This module converts statistical missingness profiles into structural
+data quality signals. Unlike health-based metrics (which measure degree
+of missingness), structural signals detect *patterns and anomalies* in
+missingness distributions.
+
+These signals are intended for:
+    - Data quality anomaly detection
+    - Pipeline failure diagnosis
+    - Feature reliability classification
+    - Structural drift monitoring
+
+All outputs are binary or bounded ratio signals designed for downstream
+rule engines and monitoring systems.
+"""
 from __future__ import annotations
 
 from typing import Mapping
@@ -18,6 +36,27 @@ from data_investigation.missingness.profilers.models import (
 def _profiles_frame(
     profiles: Mapping[str, ColumnMissingRateProfile],
 ) -> pd.DataFrame:
+    """
+    Convert column missingness profiles into a structured DataFrame.
+
+    Args:
+        profiles:
+            Mapping of feature name to ``ColumnMissingRateProfile``.
+
+    Returns:
+        DataFrame with columns:
+
+            - column_name
+            - missing_rate
+            - missing_count
+            - non_missing_count
+            - total_count
+
+        Returns empty DataFrame if input is empty.
+
+    Notes:
+        This function assumes all profile objects implement ``to_dict()``.
+    """
     if not profiles:
         return pd.DataFrame(
             columns=[
@@ -33,6 +72,23 @@ def _profiles_frame(
 
 
 def _single_profile_frame(profile: object) -> pd.DataFrame:
+    """
+    Convert a single profile object into a DataFrame row.
+
+    Args:
+        profile:
+            Object exposing a ``to_dict()`` method.
+
+    Returns:
+        Single-row DataFrame representation.
+
+    Raises:
+        TypeError:
+            If ``to_dict()`` is not implemented.
+
+    Design Note:
+        Used to unify row-level and dataset-level profile ingestion.
+    """
     if hasattr(profile, "to_dict"):
         return pd.DataFrame([profile.to_dict()])
     raise TypeError("profile must provide a to_dict() method")
@@ -41,6 +97,26 @@ def _single_profile_frame(profile: object) -> pd.DataFrame:
 class ColumnarMissingnessStructuralSignalProcessor(
     SignalProcessor[Mapping[str, ColumnMissingRateProfile], SignalTable]
 ):
+    """
+    Column-level structural anomaly detector for missingness patterns.
+
+    This processor identifies *structural irregularities* in feature
+    missingness distributions rather than simple magnitude-based health.
+
+    It detects:
+
+        1. Localized feature failures (z-score anomalies)
+        2. Global degradation patterns (low variance + high mean)
+        3. Dominant feature failure concentration
+        4. Statistical outliers (IQR-based)
+        5. Feature-level contribution imbalance
+
+    These signals are designed for:
+        - Feature engineering validation
+        - Schema quality monitoring
+        - Data ingestion anomaly detection
+    """
+
     def __init__(self, config):
         self.config = config
         self.id = "columnar_missingness_structural_signal_processor"
@@ -51,6 +127,43 @@ class ColumnarMissingnessStructuralSignalProcessor(
         self,
         profile: Mapping[str, ColumnMissingRateProfile],
     ) -> SignalTable:
+        """
+        Generate structural anomaly signals for column missingness.
+
+        Args:
+            profile:
+                Mapping of column names to missingness profiles.
+
+        Returns:
+            SignalTable with the following columns:
+
+                - column_name
+                - localized_feature_failure
+                - global_feature_degradation
+                - dominant_feature_failure_ratio
+                - dominant_feature_failure
+                - feature_missingness_outlier
+
+        Behavior:
+            - Empty input returns empty SignalTable.
+            - All signals are deterministic and threshold-driven.
+            - Uses both z-score and IQR-based anomaly detection.
+
+        Notes:
+            Key detection logic:
+
+            - Local failure:
+                (missing_rate - mean) / std > z_threshold
+
+            - Global degradation:
+                low std AND high mean missingness
+
+            - Dominance:
+                missing_count / total_missing
+
+            - Outliers:
+                IQR-based bounds
+        """
         signal_df = _profiles_frame(profile)
 
         if signal_df.empty:
@@ -103,6 +216,23 @@ class ColumnarMissingnessStructuralSignalProcessor(
 class RowsMissingnessStructuralSignalProcessor(
     SignalProcessor[RowsMissingRateProfile, SignalTable]
 ):
+    """
+    Row-level structural corruption detector.
+
+    This processor identifies structural corruption patterns in dataset
+    rows based on aggregated missingness behavior.
+
+    It classifies dataset state into:
+
+        - Complete row corruption
+        - Partial row corruption
+        - Mixed corruption regimes
+
+    These signals are used for:
+        - Pipeline failure detection
+        - Data ingestion monitoring
+        - Dataset reliability scoring
+    """
     def __init__(self, config):
         self.config = config
         self.id = "rows_missingness_structural_signal_processor"
@@ -110,6 +240,29 @@ class RowsMissingnessStructuralSignalProcessor(
         self.subject_type = SubjectType.ROW
 
     def run(self, profile: RowsMissingRateProfile) -> SignalTable:
+        """
+        Generate row-level structural corruption signals.
+
+        Args:
+            profile:
+                Row missingness profile containing dataset-level aggregates.
+
+        Returns:
+            SignalTable with:
+
+                - subject_name
+                - complete_row_corruption
+                - partial_row_corruption
+                - mixed_row_corruption
+
+        Behavior:
+            - Signals are binary (0/1).
+            - Based on configurable corruption thresholds.
+            - Mixed corruption requires both full and partial failures.
+
+        Notes:
+            This processor does not compute severity—only structural flags.
+        """
         signal_df = _single_profile_frame(profile)
 
         if signal_df.empty:
@@ -149,6 +302,20 @@ class RowsMissingnessStructuralSignalProcessor(
 class RowsDistributionStructuralSignalProcessor(
     SignalProcessor[MissingnessDistributionProfile, SignalTable]
 ):
+    """
+    Row-level distributional structure analyzer.
+
+    This processor evaluates the shape of row missingness distributions
+    to detect systemic quality patterns.
+
+    It identifies:
+
+        - Uniform row quality (low variance)
+        - Heterogeneous row quality (high variance)
+        - Heavy-tailed corruption patterns
+        - Skewed distributions
+        - Extreme failure presence
+    """
     def __init__(self, config):
         self.config = config
         self.id = "rows_distribution_structural_signal_processor"
@@ -156,6 +323,27 @@ class RowsDistributionStructuralSignalProcessor(
         self.subject_type = SubjectType.ROW
 
     def run(self, profile: MissingnessDistributionProfile) -> SignalTable:
+        """
+        Compute structural distribution signals for row missingness.
+
+        Args:
+            profile:
+                Distributional statistics of row missingness rates.
+
+        Returns:
+            SignalTable with:
+
+                - subject_name
+                - uniform_row_quality
+                - heterogeneous_row_quality
+                - heavy_tail_row_corruption
+                - skewed_row_corruption
+                - extreme_row_failure
+
+        Behavior:
+            - Uses variance, percentile gaps, and max thresholds.
+            - Outputs binary indicators (0/1).
+        """
         signal_df = _single_profile_frame(profile)
 
         if signal_df.empty:
@@ -193,6 +381,20 @@ class RowsDistributionStructuralSignalProcessor(
 class ColumnsDistributionStructuralSignalProcessor(
     SignalProcessor[MissingnessDistributionProfile, SignalTable]
 ):
+    """
+    Column-level distributional structure analyzer.
+
+    This processor mirrors row-distribution logic but applies it to
+    feature-level missingness distributions.
+
+    It detects:
+
+        - Uniform feature quality
+        - Heterogeneous feature quality
+        - Heavy-tailed feature corruption
+        - Skewed feature distributions
+        - Extreme feature failure cases
+    """
     def __init__(self, config):
         self.config = config
         self.id = "columns_distribution_structural_signal_processor"
@@ -200,6 +402,27 @@ class ColumnsDistributionStructuralSignalProcessor(
         self.subject_type = SubjectType.FEATURE
 
     def run(self, profile: MissingnessDistributionProfile) -> SignalTable:
+        """
+        Compute structural distribution signals for feature missingness.
+
+        Args:
+            profile:
+                Distributional statistics across features.
+
+        Returns:
+            SignalTable with:
+
+                - subject_name
+                - uniform_feature_quality
+                - heterogeneous_feature_quality
+                - heavy_tail_feature_corruption
+                - skewed_feature_corruption
+                - extreme_feature_failure
+
+        Behavior:
+            - Threshold-driven binary classification.
+            - Uses distribution shape metrics rather than raw rates.
+        """
         signal_df = _single_profile_frame(profile)
 
         if signal_df.empty:

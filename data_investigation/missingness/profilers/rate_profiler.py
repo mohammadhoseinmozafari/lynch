@@ -15,10 +15,49 @@ from .models import (
 
 
 class ColumnMissingRateProfiler(DatasetProfiler):
+    """
+    Profiles missing-value statistics for every column in a dataset.
+
+    This profiler computes column-level completeness metrics by counting
+    missing and non-missing values for each column and calculating the
+    corresponding missing rate.
+
+    The profiler performs a single vectorized pass over the DataFrame,
+    making it suitable for large datasets.
+
+    Metrics produced for each column include:
+        - Missing value count
+        - Non-missing value count
+        - Total row count
+        - Missing rate
+
+    Notes:
+        - Missing values are detected using ``pandas.DataFrame.isna()``.
+        - Empty DataFrames return a missing rate of ``0.0`` for all columns.
+        - Runtime complexity is approximately O(rows × columns).
+
+    Returns:
+        Dict[str, ColumnMissingRateProfile]:
+            Mapping from column name to its missing-value profile.
+    """
     def __init__(self) -> None:
         super().__init__()
 
     def profile(self, df: pd.DataFrame) -> Dict[str, ColumnMissingRateProfile]:
+        """
+        Generate missing-value statistics for every column.
+
+        Args:
+            df:
+                Input DataFrame to profile.
+
+        Returns:
+            Dictionary keyed by column name containing
+            ``ColumnMissingRateProfile`` objects.
+
+        Raises:
+            None.
+        """
         total_rows = len(df)
         missing_counts = df.isna().sum()
         non_missing_counts = total_rows - missing_counts
@@ -39,6 +78,32 @@ class ColumnMissingRateProfiler(DatasetProfiler):
 
 
 class RowsMissingRateProfiler(DatasetProfiler):
+    """
+    Profiles row-level missing-value statistics for a dataset.
+
+    This profiler identifies rows with excessive missing values and
+    summarizes dataset quality from a row perspective.
+
+    Two categories of problematic rows are reported:
+
+        1. Fully missing rows
+        2. Rows whose missing rate exceeds a configurable threshold
+
+    Random samples of matching row indices are returned to help users
+    inspect problematic records without scanning the entire dataset.
+
+    Sampling is deterministic using a fixed random seed to ensure
+    reproducible profiling results.
+
+    Args:
+        sample_size:
+            Maximum number of example row indices returned for each
+            category.
+
+        threshold:
+            Minimum fraction of missing values required for a row to be
+            classified as highly incomplete.
+    """
     def __init__(self, sample_size: int = 10, threshold: float = 0.8) -> None:
         super().__init__()
         self.id = str(ulid())
@@ -47,6 +112,25 @@ class RowsMissingRateProfiler(DatasetProfiler):
         self.threshold = threshold
 
     def profile(self, df: pd.DataFrame) -> RowsMissingRateProfile:
+        """
+        Profile row-level missingness.
+
+        Computes:
+
+        - Total dataset size
+        - Number of fully missing rows
+        - Rate of fully missing rows
+        - Number of high-missing rows
+        - Rate of high-missing rows
+        - Sample row indices for both categories
+
+        Args:
+            df:
+                Dataset to profile.
+
+        Returns:
+            A ``RowsMissingRateProfile`` summarizing row completeness.
+        """
         rows_missing_rates = df.isna().mean(axis=1)
 
         full_missing_rows_profile = self.profile_full_missing_rows(
@@ -86,6 +170,25 @@ class RowsMissingRateProfiler(DatasetProfiler):
         rows_missing_rates: pd.Series,
         sample_size: int,
     ) -> Dict[str, Any]:
+        """
+        Identify rows containing only missing values.
+
+        Args:
+            rows_missing_rates:
+                Per-row missing-value ratios.
+
+            sample_size:
+                Maximum number of row indices to sample.
+
+        Returns:
+            Dictionary containing:
+
+            - ``count``: Total fully missing rows.
+            - ``sample_indices``: Random sample of matching row indices.
+
+        Notes:
+            Sampling is deterministic using ``random_state=42``.
+        """
         fully_missing_rows = rows_missing_rates[rows_missing_rates == 1.0]
         fully_missing_count = int(len(fully_missing_rows))
 
@@ -105,6 +208,35 @@ class RowsMissingRateProfiler(DatasetProfiler):
         threshold: float,
         sample_size: int,
     ) -> Dict[str, Any]:
+        """
+        Identify rows with high missing-value ratios.
+
+        A row is considered highly incomplete when:
+
+            threshold <= missing_rate < 1.0
+
+        Fully missing rows are intentionally excluded because they are
+        reported separately.
+
+        Args:
+            rows_missing_rates:
+                Per-row missing-value ratios.
+
+            threshold:
+                Missing-rate threshold used for classification.
+
+            sample_size:
+                Maximum number of sampled row indices.
+
+        Returns:
+            Dictionary containing:
+
+            - ``count``: Number of matching rows.
+            - ``sample_indices``: Representative sampled indices.
+
+        Notes:
+            Sampling is deterministic using ``random_state=42``.
+        """
         high_missing_rate_rows = rows_missing_rates[
             (rows_missing_rates >= threshold) & (rows_missing_rates < 1.0)
         ]
@@ -122,11 +254,51 @@ class RowsMissingRateProfiler(DatasetProfiler):
 
 
 class DistributionMissingRateProfiler(DatasetProfiler):
+    """
+    Computes descriptive statistics for missing-value distributions.
+
+    Depending on the configured axis, the profiler summarizes either:
+
+        - Column missing rates
+        - Row missing rates
+
+    The resulting statistical profile provides a compact view of how
+    missing values are distributed across the dataset.
+
+    Statistics include:
+
+        - Mean
+        - Median
+        - Standard deviation
+        - Minimum
+        - Maximum
+        - 90th percentile
+        - 95th percentile
+        - 99th percentile
+
+    Args:
+        axis:
+            Direction used when computing missing rates.
+
+            - ``"columns"`` computes row-level missing rates.
+            - ``"index"`` computes column-level missing rates.
+    """
     def __init__(self, axis: Literal["index", "columns"] = "columns") -> None:
         super().__init__()
         self.axis = axis
 
     def profile(self, df: pd.DataFrame) -> MissingnessDistributionProfile:
+        """
+        Compute descriptive statistics for missing-value rates.
+
+        Args:
+            df:
+                Dataset to profile.
+
+        Returns:
+            ``MissingnessDistributionProfile`` containing summary
+            statistics describing the missing-rate distribution.
+        """
         missing_rates = df.isna().mean(axis=cast(Any, self.axis))
 
         return MissingnessDistributionProfile(
@@ -142,6 +314,32 @@ class DistributionMissingRateProfiler(DatasetProfiler):
 
 
 class MissingRateProfiler(DatasetProfiler):
+    """
+    High-level facade for dataset missing-value profiling.
+
+    This class aggregates multiple specialized profilers and exposes a
+    unified interface for analyzing missing values at different levels
+    of granularity.
+
+    Available analyses include:
+
+        - Per-column missing statistics
+        - Row-level missing statistics
+        - Row missing-rate distribution
+        - Column missing-rate distribution
+
+    The class delegates work to dedicated profiler implementations while
+    providing a simplified API for downstream consumers.
+
+    Args:
+        sample_size:
+            Default number of sampled row indices returned by row-level
+            profiling.
+
+        threshold:
+            Missing-rate threshold used when identifying highly
+            incomplete rows.
+    """
     def __init__(self, sample_size: int = 10, threshold: float = 0.8) -> None:
         super().__init__()
 
@@ -158,27 +356,83 @@ class MissingRateProfiler(DatasetProfiler):
         )
 
     def profile_columns(self, df: pd.DataFrame) -> Dict[str, ColumnMissingRateProfile]:
+        """
+        Profile missing values for every column.
+
+        Args:
+            df:
+                Dataset to profile.
+
+        Returns:
+            Dictionary of column-level missing-value profiles.
+        """
         return self._column_profiler.profile(df)
 
     def profile_rows(self, df: pd.DataFrame, sample_size: int) -> RowsMissingRateProfile:
+        """
+        Profile row-level missing values.
+
+        Args:
+            df:
+                Dataset to profile.
+
+            sample_size:
+                Maximum number of sampled row indices to include in the
+                result.
+
+        Returns:
+            Row-level missing-value summary.
+        """
         return RowsMissingRateProfiler(
             sample_size=sample_size,
             threshold=self._rows_profiler.threshold,
         ).profile(df)
 
     def profile_distribution(self, df: pd.DataFrame) -> MissingnessDistributionProfile:
+        """
+        Compute the distribution of row missing rates.
+
+        This method is equivalent to ``profile_rows_distribution()`` and
+        is provided for convenience.
+
+        Args:
+            df:
+                Dataset to profile.
+
+        Returns:
+            Statistical summary of row missing rates.
+        """
         return self._rows_distribution_profiler.profile(df)
 
     def profile_rows_distribution(
         self,
         df: pd.DataFrame,
     ) -> MissingnessDistributionProfile:
+        """
+        Compute descriptive statistics for row missing rates.
+
+        Args:
+            df:
+                Dataset to profile.
+
+        Returns:
+            Distribution summary of row completeness.
+        """
         return self._rows_distribution_profiler.profile(df)
 
     def profile_columns_distribution(
         self,
         df: pd.DataFrame,
     ) -> MissingnessDistributionProfile:
+        """
+        Compute descriptive statistics for column missing rates.
+
+        Args:
+            df:
+                Dataset to profile.
+
+        Returns:
+            Distribution summary of column completeness.
+        """
         return self._columns_distribution_profiler.profile(df)
 
-    

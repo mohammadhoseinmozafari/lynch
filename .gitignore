@@ -13,3 +13,4 @@ build/
 .pytest_cache/
 
 core/case/domain/errors/holmz.code-workspace
+/__roadmap
