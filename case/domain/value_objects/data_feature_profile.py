@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, Optional, Set
-from pydantic import BaseModel,Field, field_validator
+from pydantic import BaseModel, Field, SerializeAsAny, field_validator
 from case.domain.enums.data_feature_type import DataFeatureType
 from case.domain.enums.data_type import DataType
 from case.domain.value_objects.data_profile_stats import BaseStats
@@ -17,7 +17,7 @@ class DataFeatureProfile (BaseModel) :
         feature_stats: Type‑specific statistics (numeric, categorical, etc.).
     """
     name : str = Field (min_length=1)
-    feature_stats : BaseStats
+    feature_stats : SerializeAsAny[BaseStats]
     dtype : Any
     inferred_semantic_type : DataFeatureType = DataFeatureType.UNKNOWN
 

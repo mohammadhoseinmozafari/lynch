@@ -38,5 +38,5 @@ class CategoricalStats (BaseStats) :
         top_values: Values with highest appearance frequency.
     """
     feature_type : DataFeatureType = Field(default=DataFeatureType.CATEGORICAL, frozen=True)
-    cardinality : int = Field(ge=1.0)
+    cardinality : int = Field(ge=0)
     top_values : Dict[str, float]
