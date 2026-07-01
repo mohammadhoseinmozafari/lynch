@@ -20,6 +20,11 @@ class DataProfile(BaseModel) :
     feature_profiles : Dict[str, DataFeatureProfile]
     computed_at : Optional[datetime] = Field(None)
     
+    computed_at : Optional[datetime] = Field(default_factory= datetime.now)
+    updated_at : Optional[datetime] = None
+
+    def touch (self) -> None:
+        self.updated_at = datetime.now()
     def get_feature_names (self) -> Set[str]:
         return set(self.feature_profiles.keys())
 
