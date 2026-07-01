@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Set
 from pydantic import BaseModel, Field, SerializeAsAny, field_validator
 from case.domain.enums.data_feature_type import DataFeatureType
-from case.domain.enums.data_type import DataType
 from case.domain.value_objects.data_profile_stats import BaseStats
 from case.domain.value_objects.profile_namespace import ProfileNamespace
 

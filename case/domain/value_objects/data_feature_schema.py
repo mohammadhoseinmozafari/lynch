@@ -23,7 +23,7 @@ class FeatureSchema (BaseModel) :
     dtype : DataType 
     feature_type : DataFeatureType 
 
-    unconstrained: Optional[bool] = Field(False)
-    actionable : Optional[bool] = Field(True)
+    unconstrained: Optional[bool] = False
+    actionable : Optional[bool] = True
     
     description : Optional[str] = Field(max_length=250, default="Feature description") 

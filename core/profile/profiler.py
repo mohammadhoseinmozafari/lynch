@@ -28,7 +28,7 @@ class ProfilerType(str, Enum):
 class DatasetProfiler(ABC):
     """Base class for profilers that inspect a pandas dataset."""
 
-    capability: Optional[str] = None
+    capability: str 
 
     def __init__(self) -> None:
         super().__init__()
@@ -47,13 +47,8 @@ class DatasetProfiler(ABC):
 
     @property
     def capability_name(self) -> str:
-        if self.capability:
-            return self.capability
-        class_name = self.__class__.__name__
-        if class_name.endswith("Profiler"):
-            class_name = class_name[: -len("Profiler")]
-        snake_case_name = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
-        return f"profile.{snake_case_name}"
+        return self.capability
+
 
 
 class BaseDatasetProfiler(DatasetProfiler):
@@ -77,6 +72,7 @@ class BaseDatasetProfiler(DatasetProfiler):
 
         feature_schemas: Dict[str, FeatureSchema] = {}
         feature_profiles: Dict[str, DataFeatureProfile] = {}
+        
 
         for name in df.columns:
             series = df[name]
