@@ -5,9 +5,11 @@ from case.domain.enums.data_split_name import DataSplitName
 from case.domain.enums.task_type import TaskType
 from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.data_schema import DataSchema
+from case.domain.value_objects.data_split import DataArtifactPointer
 class DatasetBinding(BaseModel) :
 
     dataset_name : Optional[str] = Field(None)
+    artifact_pointer : DataArtifactPointer
     dataset_schema : DataSchema
     dataset_profile: DataProfile
     drift_baseline : Optional[DataSplitName] = Field(default=None)
