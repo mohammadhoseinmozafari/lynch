@@ -18,12 +18,3 @@ class DataFeatureProfile (BaseModel) :
     name : str = Field (min_length=1)
     dtype : Any
     inferred_semantic_type : DataFeatureType = DataFeatureType.UNKNOWN
-
-    namespaces : Dict[str, ProfileNamespace] = Field(default_factory=dict)
-    capabilities : Set[str]
-
-    computed_at : Optional[datetime] = Field(default_factory= datetime.now)
-    updated_at : Optional[datetime] = None
-
-    def touch (self) -> None:
-        self.updated_at = datetime.now()
