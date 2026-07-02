@@ -1,6 +1,5 @@
-from .profiler import BaseDatasetProfiler, DatasetProfiler
+from .profiler import DatasetProfiler
 
 __all__ = [
     "DatasetProfiler",
-    "BaseDatasetProfiler",
 ]

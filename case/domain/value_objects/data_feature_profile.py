@@ -16,7 +16,6 @@ class DataFeatureProfile (BaseModel) :
         feature_stats: Type‑specific statistics (numeric, categorical, etc.).
     """
     name : str = Field (min_length=1)
-    feature_stats : SerializeAsAny[BaseStats]
     dtype : Any
     inferred_semantic_type : DataFeatureType = DataFeatureType.UNKNOWN
 
