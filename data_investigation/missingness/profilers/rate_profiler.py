@@ -119,16 +119,8 @@ class ColumnDistributionMissingRateProfiler(DatasetProfiler):
     provides = {capability}
 
     def profile(self, df: pd.DataFrame, profile: DataProfile) -> ProfileNamespace:
-        column_namespace = profile.get_namespace("missingness.column_rates")
-
-        if column_namespace is None:
-            raise ValueError("missingness.column_rates not available")
-
-        rates = column_namespace.metrics.get("missing_rate_by_column")
-
-        if rates is None:
-            raise ValueError("missing_rate_by_column not found")
-
+        column_namespace = profile.require_namespace("missingness.column_rates")
+        rates = column_namespace.require_metric("missing_rate_by_column")
         missing_rates = pd.Series(rates, dtype=float)
 
         return ProfileNamespace(
