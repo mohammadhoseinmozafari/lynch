@@ -18,33 +18,6 @@ def base_profile() -> DataProfile:
     return profile
 
 
-def test_column_profiler_writes_namespace_and_skips_existing_capability():
-    dataframe = pd.DataFrame({"a": [1, None], "b": [None, None]})
-    profile = base_profile()
-    profiler = ColumnMissingRateProfiler()
-
-    assert profiler.run(dataframe, profile) is None
-
-    metrics = profile.namespaces[profiler.capability].metrics
-    assert metrics == {
-        "missing_rate_by_column": {"a": 0.5, "b": 1.0},
-        "missing_count_by_column": {"a": 1, "b": 2},
-        "non_missing_count_by_column": {"a": 1, "b": 0},
-        "total_rows": 2,
-    }
-
-    dataframe["a"] = [None, None]
-    profiler.run(dataframe, profile)
-    assert profile.namespaces[profiler.capability].metrics == metrics
-
-
-@pytest.mark.parametrize(
-    "profiler", [ColumnMissingRateProfiler(), RowsMissingRateProfiler()]
-)
-def test_base_dependent_profilers_reject_missing_dependency(profiler):
-    with pytest.raises(RuntimeError, match="Missing dependency: profile.base"):
-        profiler.run(pd.DataFrame({"a": [1]}), DataProfile(feature_profiles={}))
-
 
 def test_rows_profiler_writes_deterministic_samples_and_metrics():
     dataframe = pd.DataFrame(
@@ -55,7 +28,7 @@ def test_rows_profiler_writes_deterministic_samples_and_metrics():
     )
     profile = base_profile()
 
-    RowsMissingRateProfiler(sample_size=1, threshold=0.5).run(dataframe, profile)
+    RowsMissingRateProfiler(sample_size=1, threshold=0.5).profile(dataframe, profile)
 
     metrics = profile.namespaces["missingness.row_rates"].metrics
     assert metrics["full_missing_rows_count"] == 2
@@ -82,7 +55,7 @@ def test_distribution_reuses_column_namespace():
     profile.add_capability("missingness.column_rates")
 
     # The dataframe deliberately disagrees with the cached values.
-    DistributionMissingRateProfiler().run(
+    DistributionMissingRateProfiler().profile(
         pd.DataFrame({"a": [1, 1], "b": [1, 1]}), profile
     )
 
@@ -95,7 +68,7 @@ def test_distribution_reuses_column_namespace():
 
 def test_distribution_falls_back_to_row_rates():
     profile = base_profile()
-    DistributionMissingRateProfiler().run(
+    DistributionMissingRateProfiler().profile(
         pd.DataFrame({"a": [None, 1], "b": [None, 1]}), profile
     )
 

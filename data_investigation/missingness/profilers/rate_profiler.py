@@ -18,13 +18,7 @@ class ColumnMissingRateProfiler(DatasetProfiler):
     requires = {"profile.base"}
     provides = {capability}
 
-    def run(self, df: pd.DataFrame, profile: DataProfile) -> None:
-        if profile.has_capability(self.capability):
-            return
-
-        for req in self.requires:
-            if not profile.has_capability(req):
-                raise RuntimeError(f"Missing dependency: {req}")
+    def profile(self, df: pd.DataFrame, profile: DataProfile) -> None:
 
         total_rows = len(df)
         missing_counts = df.isna().sum()
@@ -69,13 +63,8 @@ class RowsMissingRateProfiler(DatasetProfiler):
         self.sample_size = sample_size
         self.threshold = threshold
 
-    def run(self, df: pd.DataFrame, profile: DataProfile) -> None:
-        if profile.has_capability(self.capability):
-            return
+    def profile(self, df: pd.DataFrame, profile: DataProfile) -> None:
 
-        for req in self.requires:
-            if not profile.has_capability(req):
-                raise RuntimeError(f"Missing dependency: {req}")
 
         rows_missing_rates = df.isna().mean(axis=1)
         fully_missing_rows = rows_missing_rates[rows_missing_rates == 1.0]
@@ -127,19 +116,12 @@ class DistributionMissingRateProfiler(DatasetProfiler):
     """Add a missing-rate distribution, preferring cached column rates."""
 
     capability = "missingness.distribution"
-    # Either source capability is sufficient. The engine may ensure either one;
-    # when neither is present, run() uses its documented row-rate fallback.
-    requires: set[str] = set()
+    requires=  {"profile.base"}
     requires_any = {"missingness.column_rates", "missingness.row_rates"}
     provides = {capability}
 
-    def run(self, df: pd.DataFrame, profile: DataProfile) -> None:
-        if profile.has_capability(self.capability):
-            return
+    def profile(self, df: pd.DataFrame, profile: DataProfile) -> None:
 
-        for req in self.requires:
-            if not profile.has_capability(req):
-                raise RuntimeError(f"Missing dependency: {req}")
 
         column_namespace = profile.get_namespace("missingness.column_rates")
         if column_namespace is not None:
