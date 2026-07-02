@@ -40,9 +40,9 @@ class BaseDatasetProfiler(DatasetProfiler):
         df: pd.DataFrame,
         profile: DataProfile,
     ) -> ProfileNamespace:
-        DataframeValidator.validate(df)
-        feature_profiles: Dict[str, DataFeatureProfile] = {}
 
+        feature_profiles: Dict[str, DataFeatureProfile] = {}
+        total_rows  =  len(df)
         for name in df.columns:
             series = df[name]
             feature_type = self._infer_types(series)
@@ -50,12 +50,14 @@ class BaseDatasetProfiler(DatasetProfiler):
                 name=name,
                 dtype=series.dtype,
                 inferred_semantic_type=feature_type,
-                capabilities={self.capability},
             )
 
         return ProfileNamespace(
             name=self.capability,
-            metrics={"feature_profiles": feature_profiles},
+            metrics={
+                "feature_profiles": feature_profiles,
+                "total_rows" : total_rows, 
+                },
         )
 
     @staticmethod
