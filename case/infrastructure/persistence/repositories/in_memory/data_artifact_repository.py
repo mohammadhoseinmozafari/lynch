@@ -6,9 +6,8 @@ from threading import RLock
 
 import pandas as pd
 
-from case.domain.repositories.artifact_repository import DataArtifactRepository
+from case.domain.repositories.data_artifact_repository import DataArtifactRepository
 from case.domain.value_objects.dataset_artifact import (
-    DataArtifactPointer,
     InMemoryDataArtifactPointer,
 )
 
@@ -42,32 +41,32 @@ class InMemoryDataArtifactRepository(DataArtifactRepository):
             column_count=len(dataframe.columns),
         )
         with self._lock:
-            self._artifacts[pointer.key] = dataframe
+            self._artifacts[pointer.object_id] = dataframe
         return pointer
 
-    def resolve(self, pointer: DataArtifactPointer) -> pd.DataFrame:
-        key = self._key_for(pointer)
+    def get(self, object_id: str) -> pd.DataFrame:
+        object_id = self._validate_object_id(object_id)
         with self._lock:
             try:
-                return self._artifacts[key]
+                return self._artifacts[object_id]
             except KeyError as error:
                 raise DataArtifactNotFoundError(
-                    f"No in-memory dataframe exists for pointer {key!r}"
+                    f"No in-memory dataframe exists for object {object_id!r}"
                 ) from error
 
-    def exists(self, pointer: DataArtifactPointer) -> bool:
-        key = self._key_for(pointer)
+    def exists(self, object_id: str) -> bool:
+        object_id = self._validate_object_id(object_id)
         with self._lock:
-            return key in self._artifacts
+            return object_id in self._artifacts
 
-    def delete(self, pointer: DataArtifactPointer) -> None:
-        key = self._key_for(pointer)
+    def delete(self, object_id: str) -> None:
+        object_id = self._validate_object_id(object_id)
         with self._lock:
             try:
-                del self._artifacts[key]
+                del self._artifacts[object_id]
             except KeyError as error:
                 raise DataArtifactNotFoundError(
-                    f"No in-memory dataframe exists for pointer {key!r}"
+                    f"No in-memory dataframe exists for object {object_id!r}"
                 ) from error
 
     def clear(self) -> None:
@@ -80,10 +79,9 @@ class InMemoryDataArtifactRepository(DataArtifactRepository):
             return len(self._artifacts)
 
     @staticmethod
-    def _key_for(pointer: DataArtifactPointer) -> str:
-        if not isinstance(pointer, InMemoryDataArtifactPointer):
+    def _validate_object_id(object_id: str) -> str:
+        if not isinstance(object_id, str) or not object_id.startswith("memory://"):
             raise UnsupportedDataArtifactPointerError(
-                "InMemoryDataArtifactRepository requires an "
-                "InMemoryDataArtifactPointer"
+                "InMemoryDataArtifactRepository requires a memory:// object_id"
             )
-        return pointer.key
+        return object_id

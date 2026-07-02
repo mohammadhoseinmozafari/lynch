@@ -11,8 +11,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
+from core.context import InvestigationContext
 from core.profile import DatasetProfiler
 
 
@@ -28,14 +28,15 @@ class MissingnessCorrelationProfiler(DatasetProfiler):
     requires = {"profile.base", "missingness.column_rates"}
     provides = {capability}
 
-    def profile(
-        self,
-        df: pd.DataFrame,
-        profile: DataProfile,
-    ) -> ProfileNamespace:
+    def profile(self, ctx: InvestigationContext) -> ProfileNamespace:
         """Return pairwise binary-missingness metrics in deterministic order."""
-        column_rates_namespace = profile.require_namespace("missingness.column_rates")
-        counts = column_rates_namespace.require_metric("missing_count_by_column")
+        df = ctx.get_dataframe()
+        if not df.columns.is_unique:
+            raise ValueError("DataFrame columns must be unique")
+        column_rates_namespace = ctx.profile.namespaces[
+            "missingness.column_rates"
+        ]
+        counts = column_rates_namespace.metrics["missing_count_by_column"]
         total_rows = len(df)
         eligible_columns = list(df.columns)
         self._validate_cached_count_columns(counts, eligible_columns)

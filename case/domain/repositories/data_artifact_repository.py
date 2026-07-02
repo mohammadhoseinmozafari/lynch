@@ -17,13 +17,13 @@ class DataArtifactRepository(ABC):
         """Store ``dataframe`` and return a pointer containing no data."""
 
     @abstractmethod
-    def resolve(self, pointer: DataArtifactPointer) -> pd.DataFrame:
-        """Return the dataframe referenced by ``pointer``."""
+    def get(self, object_id: str) -> pd.DataFrame:
+        """Return the dataframe identified by ``object_id``."""
 
     @abstractmethod
-    def exists(self, pointer: DataArtifactPointer) -> bool:
-        """Return whether ``pointer`` can be resolved by this repository."""
+    def exists(self, object_id: str) -> bool:
+        """Return whether ``object_id`` can be resolved by this repository."""
 
     @abstractmethod
-    def delete(self, pointer: DataArtifactPointer) -> None:
-        """Delete the artifact referenced by ``pointer``."""
+    def delete(self, object_id: str) -> None:
+        """Delete the artifact identified by ``object_id``."""

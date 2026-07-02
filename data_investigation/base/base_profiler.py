@@ -6,8 +6,8 @@ import pandas as pd
 
 from case.domain.enums.data_feature_type import DataFeatureType
 from case.domain.value_objects.data_feature_profile import DataFeatureProfile
-from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
+from core.context import InvestigationContext
 from core.profile import DatasetProfiler
 
 
@@ -35,14 +35,11 @@ class BaseDatasetProfiler(DatasetProfiler):
         super().__init__()
         self.dataset_name = dataset_name
 
-    def profile(
-        self,
-        df: pd.DataFrame,
-        profile: DataProfile,
-    ) -> ProfileNamespace:
-
+    def profile(self, ctx: InvestigationContext) -> ProfileNamespace:
+        df = ctx.get_dataframe()
+        DataframeValidator.validate(df)
         feature_profiles: Dict[str, DataFeatureProfile] = {}
-        total_rows  =  len(df)
+        total_rows = len(df)
         for name in df.columns:
             series = df[name]
             feature_type = self._infer_types(series)
@@ -56,8 +53,8 @@ class BaseDatasetProfiler(DatasetProfiler):
             name=self.capability,
             metrics={
                 "feature_profiles": feature_profiles,
-                "total_rows" : total_rows, 
-                },
+                "total_rows": total_rows,
+            },
         )
 
     @staticmethod

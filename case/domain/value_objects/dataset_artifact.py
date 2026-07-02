@@ -14,6 +14,7 @@ class DataArtifactPointer(BaseModel, ABC):
     ``DataArtifactRepository`` is responsible for resolving them.
     """
 
+    object_id: str = Field(min_length=1)
     record_count: Optional[int] = Field(default=None, ge=0)
     column_count: Optional[int] = Field(default=None, ge=0)
 
@@ -23,7 +24,7 @@ class DataArtifactPointer(BaseModel, ABC):
 class InMemoryDataArtifactPointer(DataArtifactPointer):
     """Identifier for a dataframe owned by an in-memory repository."""
 
-    key: str = Field(
+    object_id: str = Field(
         default_factory=lambda: f"memory://{uuid4()}",
         pattern=r"^memory://.+$",
     )

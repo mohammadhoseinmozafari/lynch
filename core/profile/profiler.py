@@ -3,11 +3,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import Enum
 
-import pandas as pd
 from ulid import ulid
 
-from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
+from core.context import InvestigationContext
 
 
 class ProfilerType(str, Enum):
@@ -28,15 +27,10 @@ class DatasetProfiler(ABC):
         self.profiler_type: ProfilerType = ProfilerType.DATASET
 
     @abstractmethod
-    def profile(
-        self,
-        df: pd.DataFrame,
-        profile: DataProfile,
-    ) -> ProfileNamespace:
+    def profile(self, ctx: InvestigationContext) -> ProfileNamespace:
+        """Calculate raw statistics from an investigation context."""
         pass
-
 
     @property
     def capability_name(self) -> str:
-       return self.capability
-
+        return self.capability

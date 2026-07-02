@@ -6,6 +6,10 @@ import pytest
 
 from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
+from case.infrastructure.persistence.repositories.in_memory import (
+    InMemoryDataArtifactRepository,
+)
+from core.context import InvestigationContext
 from data_investigation.missingness.profilers.rate_profiler import (
     ColumnDistributionMissingRateProfiler,
     ColumnMissingRateProfiler,
@@ -20,13 +24,19 @@ def base_profile() -> DataProfile:
     return profile
 
 
+def context_for(dataframe: pd.DataFrame, profile: DataProfile) -> InvestigationContext:
+    return InvestigationContext.from_dataframe(
+        dataframe,
+        profile=profile,
+        artifact_store=InMemoryDataArtifactRepository(),
+    )
+
+
 def test_column_profiler_returns_namespace_without_mutating_profile():
     profile = base_profile()
 
-    namespace = ColumnMissingRateProfiler().profile(
-        pd.DataFrame({"a": [1, None], "b": [None, None]}),
-        profile,
-    )
+    dataframe = pd.DataFrame({"a": [1, None], "b": [None, None]})
+    namespace = ColumnMissingRateProfiler().profile(context_for(dataframe, profile))
 
     assert namespace.name == "missingness.column_rates"
     assert namespace.metrics == {
@@ -41,14 +51,14 @@ def test_column_profiler_returns_namespace_without_mutating_profile():
 
 def test_rows_profiler_returns_deterministic_metrics_without_mutation():
     profile = base_profile()
-    namespace = RowsMissingRateProfiler(sample_size=1, threshold=0.5).profile(
-        pd.DataFrame(
+    dataframe = pd.DataFrame(
             {
                 "a": [None, None, None, 1],
                 "b": [None, None, 2, 2],
             }
-        ),
-        profile,
+    )
+    namespace = RowsMissingRateProfiler(sample_size=1, threshold=0.5).profile(
+        context_for(dataframe, profile)
     )
 
     metrics = namespace.metrics
@@ -72,8 +82,9 @@ def test_distribution_reuses_existing_column_namespace_without_mutation():
     )
     profile.set_namespace(cached_namespace)
 
+    dataframe = pd.DataFrame({"a": [1, 1], "b": [1, 1]})
     namespace = ColumnDistributionMissingRateProfiler().profile(
-        pd.DataFrame({"a": [1, 1], "b": [1, 1]}), profile
+        context_for(dataframe, profile)
     )
 
     assert namespace.metrics["mean"] == 0.5
@@ -84,9 +95,9 @@ def test_distribution_reuses_existing_column_namespace_without_mutation():
 
 
 def test_rows_distribution_uses_row_rates():
+    dataframe = pd.DataFrame({"a": [None, 1], "b": [None, 1]})
     namespace = RowsDistributionMissingRateProfiler().profile(
-        pd.DataFrame({"a": [None, 1], "b": [None, 1]}),
-        base_profile(),
+        context_for(dataframe, base_profile())
     )
 
     assert namespace.metrics["mean"] == 0.5
@@ -113,14 +124,15 @@ def test_rows_profiler_rejects_invalid_threshold(threshold):
 )
 def test_row_profilers_reject_dataframes_without_columns(profiler):
     with pytest.raises(ValueError, match="at least one column"):
-        profiler.profile(pd.DataFrame(index=[0]), base_profile())
+        dataframe = pd.DataFrame(index=[0])
+        profiler.profile(context_for(dataframe, base_profile()))
 
 
 def test_column_profiler_rejects_duplicate_columns():
     df = pd.DataFrame([[1, None]], columns=["value", "value"])
 
     with pytest.raises(ValueError, match="columns must be unique"):
-        ColumnMissingRateProfiler().profile(df, base_profile())
+        ColumnMissingRateProfiler().profile(context_for(df, base_profile()))
 
 
 @pytest.mark.parametrize(
@@ -145,9 +157,8 @@ def test_column_distribution_rejects_invalid_rate_metrics(rates):
     )
 
     with pytest.raises(ValueError):
-        ColumnDistributionMissingRateProfiler().profile(
-            pd.DataFrame({"a": [None, 1]}), profile
-        )
+        dataframe = pd.DataFrame({"a": [None, 1]})
+        ColumnDistributionMissingRateProfiler().profile(context_for(dataframe, profile))
 
 
 def test_column_distribution_rejects_rate_count_inconsistency():
@@ -164,6 +175,5 @@ def test_column_distribution_rejects_rate_count_inconsistency():
     )
 
     with pytest.raises(ValueError, match="inconsistent with its count"):
-        ColumnDistributionMissingRateProfiler().profile(
-            pd.DataFrame({"a": [None, 1]}), profile
-        )
+        dataframe = pd.DataFrame({"a": [None, 1]})
+        ColumnDistributionMissingRateProfiler().profile(context_for(dataframe, profile))

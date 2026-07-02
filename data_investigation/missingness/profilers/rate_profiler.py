@@ -8,10 +8,20 @@ from typing import Any
 import pandas as pd
 from ulid import ulid
 
-from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
+from core.context import InvestigationContext
 from core.profile import DatasetProfiler
 from core.profile.profiler import ProfilerType
+
+
+def _validate_unique_columns(df: pd.DataFrame) -> None:
+    if not df.columns.is_unique:
+        raise ValueError("DataFrame columns must be unique")
+
+
+def _validate_has_columns(df: pd.DataFrame) -> None:
+    if df.columns.empty:
+        raise ValueError("DataFrame must contain at least one column")
 
 
 
@@ -22,12 +32,9 @@ class ColumnMissingRateProfiler(DatasetProfiler):
     requires = {"profile.base"}
     provides = {capability}
 
-    def profile(
-        self,
-        df: pd.DataFrame,
-        profile: DataProfile,
-    ) -> ProfileNamespace:
-        
+    def profile(self, ctx: InvestigationContext) -> ProfileNamespace:
+        df = ctx.get_dataframe()
+        _validate_unique_columns(df)
         total_rows = len(df)
         missing_counts = df.isna().sum()
         non_missing_counts = total_rows - missing_counts
@@ -68,12 +75,9 @@ class RowsMissingRateProfiler(DatasetProfiler):
         self.sample_size = self._validate_sample_size(sample_size)
         self.threshold = self._validate_threshold(threshold)
 
-    def profile(
-        self,
-        df: pd.DataFrame,
-        profile: DataProfile,
-    ) -> ProfileNamespace:
-        
+    def profile(self, ctx: InvestigationContext) -> ProfileNamespace:
+        df = ctx.get_dataframe()
+        _validate_has_columns(df)
         rows_missing_rates = df.isna().mean(axis=1)
         fully_missing_rows = rows_missing_rates[rows_missing_rates == 1.0]
         high_missing_rows = rows_missing_rates[
@@ -145,9 +149,12 @@ class ColumnDistributionMissingRateProfiler(DatasetProfiler):
     requires = {"missingness.column_rates"}
     provides = {capability}
 
-    def profile(self, df: pd.DataFrame, profile: DataProfile) -> ProfileNamespace:
-        column_namespace = profile.require_namespace("missingness.column_rates")
-        rates = column_namespace.require_metric("missing_rate_by_column")
+    def profile(self, ctx: InvestigationContext) -> ProfileNamespace:
+        df = ctx.get_dataframe()
+        _validate_unique_columns(df)
+        profile = ctx.profile
+        column_namespace = profile.namespaces["missingness.column_rates"]
+        rates = column_namespace.metrics["missing_rate_by_column"]
 
         validated_rates = self._validate_rates(rates, df)
 
@@ -235,7 +242,9 @@ class RowsDistributionMissingRateProfiler(DatasetProfiler):
     requires = {"profile.base"}
     provides = {capability}
 
-    def profile(self, df: pd.DataFrame, profile: DataProfile) -> ProfileNamespace:
+    def profile(self, ctx: InvestigationContext) -> ProfileNamespace:
+        df = ctx.get_dataframe()
+        _validate_has_columns(df)
         missing_rates = df.isna().mean(axis=1)
 
 

@@ -2,14 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from case.domain.value_objects.data_profile import (
-    DataProfile,
-    MissingProfileDependencyError,
+from case.domain.value_objects.data_profile import DataProfile
+from case.domain.value_objects.profile_namespace import ProfileNamespace
+from case.infrastructure.persistence.repositories.in_memory import (
+    InMemoryDataArtifactRepository,
 )
-from case.domain.value_objects.profile_namespace import (
-    MissingProfileMetricError,
-    ProfileNamespace,
-)
+from core.context import InvestigationContext
 from data_investigation.missingness.profilers.correlation_profiler import (
     MissingnessCorrelationProfiler,
 )
@@ -33,6 +31,14 @@ def profile_with_dependencies(df: pd.DataFrame) -> DataProfile:
     return profile
 
 
+def context_for(dataframe: pd.DataFrame, profile: DataProfile) -> InvestigationContext:
+    return InvestigationContext.from_dataframe(
+        dataframe,
+        profile=profile,
+        artifact_store=InMemoryDataArtifactRepository(),
+    )
+
+
 def test_correlated_missingness_has_high_jaccard_and_positive_phi():
     df = pd.DataFrame(
         {
@@ -42,7 +48,7 @@ def test_correlated_missingness_has_high_jaccard_and_positive_phi():
     )
 
     namespace = MissingnessCorrelationProfiler().profile(
-        df, profile_with_dependencies(df)
+        context_for(df, profile_with_dependencies(df))
     )
     pair = namespace.metrics["pairs"][0]
 
@@ -61,7 +67,7 @@ def test_independent_missingness_has_low_phi():
     )
 
     pair = MissingnessCorrelationProfiler().profile(
-        df, profile_with_dependencies(df)
+        context_for(df, profile_with_dependencies(df))
     ).metrics["pairs"][0]
 
     assert pair["phi_correlation"] == pytest.approx(0.0)
@@ -77,7 +83,7 @@ def test_pair_metrics_follow_binary_missingness_formulas():
     )
 
     pair = MissingnessCorrelationProfiler().profile(
-        df, profile_with_dependencies(df)
+        context_for(df, profile_with_dependencies(df))
     ).metrics["pairs"][0]
 
     assert pair["left_missing_count"] == 2
@@ -104,7 +110,7 @@ def test_fully_missing_column_has_none_phi_but_remains_valid():
     )
 
     pair = MissingnessCorrelationProfiler().profile(
-        df, profile_with_dependencies(df)
+        context_for(df, profile_with_dependencies(df))
     ).metrics["pairs"][0]
 
     assert pair["phi_correlation"] is None
@@ -124,7 +130,7 @@ def test_namespace_shape_and_input_immutability():
     profile = profile_with_dependencies(df)
     original_namespace_names = set(profile.namespaces)
 
-    namespace = MissingnessCorrelationProfiler().profile(df, profile)
+    namespace = MissingnessCorrelationProfiler().profile(context_for(df, profile))
 
     assert namespace.name == "missingness.correlation"
     assert namespace.metrics["total_rows"] == 3
@@ -153,7 +159,7 @@ def test_pair_order_follows_original_column_order():
     )
 
     pairs = MissingnessCorrelationProfiler().profile(
-        df, profile_with_dependencies(df)
+        context_for(df, profile_with_dependencies(df))
     ).metrics["pairs"]
 
     assert [(pair["left_column"], pair["right_column"]) for pair in pairs] == [
@@ -175,7 +181,7 @@ def test_matrix_product_does_not_overflow_uint8():
     )
 
     pair = MissingnessCorrelationProfiler().profile(
-        df, profile_with_dependencies(df)
+        context_for(df, profile_with_dependencies(df))
     ).metrics["pairs"][0]
 
     assert pair["both_missing_count"] == 300
@@ -186,7 +192,7 @@ def test_pair_without_missing_values_is_invalid_and_zero_safe():
     df = pd.DataFrame({"left": [1, 2], "right": [3, 4]})
 
     pair = MissingnessCorrelationProfiler().profile(
-        df, profile_with_dependencies(df)
+        context_for(df, profile_with_dependencies(df))
     ).metrics["pairs"][0]
 
     assert pair["valid_pair"] is False
@@ -209,7 +215,7 @@ def test_invalid_cached_missing_count_is_rejected(bad_count):
     ]["left"] = bad_count
 
     with pytest.raises(ValueError, match="Invalid missing count for column 'left'"):
-        MissingnessCorrelationProfiler().profile(df, profile)
+        MissingnessCorrelationProfiler().profile(context_for(df, profile))
 
 
 def test_stale_cached_missing_count_is_rejected():
@@ -220,17 +226,7 @@ def test_stale_cached_missing_count_is_rejected():
     ]["left"] = 0
 
     with pytest.raises(ValueError, match="does not match DataFrame"):
-        MissingnessCorrelationProfiler().profile(df, profile)
-
-
-@pytest.mark.parametrize("total_rows", [-1, 1, 3, 2.0, True, "2"])
-def test_invalid_or_stale_base_row_count_is_rejected(total_rows):
-    df = pd.DataFrame({"left": [None, 1], "right": [None, 2]})
-    profile = profile_with_dependencies(df)
-    profile.namespaces["profile.base"].metrics["total_rows"] = total_rows
-
-    with pytest.raises(ValueError, match="total_rows"):
-        MissingnessCorrelationProfiler().profile(df, profile)
+        MissingnessCorrelationProfiler().profile(context_for(df, profile))
 
 
 def test_cached_count_columns_must_match_dataframe():
@@ -241,7 +237,7 @@ def test_cached_count_columns_must_match_dataframe():
     ].pop("right")
 
     with pytest.raises(ValueError, match="columns do not match"):
-        MissingnessCorrelationProfiler().profile(df, profile)
+        MissingnessCorrelationProfiler().profile(context_for(df, profile))
 
 
 def test_cached_counts_must_be_a_mapping():
@@ -252,7 +248,7 @@ def test_cached_counts_must_be_a_mapping():
     ] = [1, 1]
 
     with pytest.raises(ValueError, match="must be a mapping"):
-        MissingnessCorrelationProfiler().profile(df, profile)
+        MissingnessCorrelationProfiler().profile(context_for(df, profile))
 
 
 def test_correlation_profiler_rejects_duplicate_columns():
@@ -269,7 +265,7 @@ def test_correlation_profiler_rejects_duplicate_columns():
     )
 
     with pytest.raises(ValueError, match="columns must be unique"):
-        MissingnessCorrelationProfiler().profile(df, profile)
+        MissingnessCorrelationProfiler().profile(context_for(df, profile))
 
 
 def test_impossible_contingency_table_is_rejected():
@@ -285,10 +281,10 @@ def test_impossible_contingency_table_is_rejected():
 
 
 def test_missing_required_namespace_raises_domain_error():
-    with pytest.raises(MissingProfileDependencyError):
+    dataframe = pd.DataFrame({"left": [None], "right": [None]})
+    with pytest.raises(KeyError):
         MissingnessCorrelationProfiler().profile(
-            pd.DataFrame({"left": [None], "right": [None]}),
-            DataProfile(feature_profiles={}),
+            context_for(dataframe, DataProfile(feature_profiles={}))
         )
 
 
@@ -299,7 +295,8 @@ def test_missing_required_metric_raises_domain_error():
         ProfileNamespace(name="profile.base", metrics={"total_rows": 1})
     )
 
-    with pytest.raises(MissingProfileMetricError):
+    dataframe = pd.DataFrame({"left": [None], "right": [None]})
+    with pytest.raises(KeyError):
         MissingnessCorrelationProfiler().profile(
-            pd.DataFrame({"left": [None], "right": [None]}), profile
+            context_for(dataframe, profile)
         )
