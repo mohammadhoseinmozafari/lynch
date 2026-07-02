@@ -2,9 +2,9 @@
 import pytest
 from pathlib import Path
 import json
-from core.case.domain.value_objects.environment_snapshot import EnvironmentSnapshot
-from core.case.domain.enums.env_snapshot_type import EnvSnapshotType
-from core.case.application.validators.environment_snapshot_validator import EnvironmentValidator
+from case.domain.value_objects.environment_snapshot import EnvironmentSnapshot
+from case.domain.enums.env_snapshot_type import EnvSnapshotType
+from case.application.validators.environment_snapshot_validator import EnvironmentValidator
 from core.shared.domain.value_objects.validation_report import ValidationReport
 from typing import Callable, Any
 

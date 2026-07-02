@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import Enum
 import re
 from typing import Any, Dict, Optional, Tuple
@@ -28,26 +28,41 @@ class ProfilerType(str, Enum):
 class DatasetProfiler(ABC):
     """Base class for profilers that inspect a pandas dataset."""
 
-    capability: str 
+    capability: str
+    requires: set[str] = set()
+    provides: set[str] = set()
 
     def __init__(self) -> None:
         super().__init__()
         self.id = str(ulid())
         self.profiler_type: ProfilerType = ProfilerType.DATASET
 
-    @abstractmethod
+    def run(self, df: pd.DataFrame, profile: DataProfile) -> None:
+        """Enrich ``profile`` with this profiler's capability."""
+        raise NotImplementedError
+
     def profile(self, df: pd.DataFrame) -> Any:
-        pass
+        """Legacy return-based hook retained for profilers not yet migrated."""
+        raise NotImplementedError
 
     def profile_binding(self, binding: DatasetBinding) -> Any:
         """Profile an existing binding and record this profiler's capability."""
+        if type(self).run is not DatasetProfiler.run:
+            self.run(binding.artifact_pointer.resolve(), binding.dataset_profile)
+            return None
         result = self.profile(binding.artifact_pointer.resolve())
         binding.dataset_profile.add_capability(self.capability_name)
         return result
 
     @property
     def capability_name(self) -> str:
-        return self.capability
+        declared = getattr(self, "capability", None)
+        if declared:
+            return declared
+        class_name = type(self).__name__
+        base_name = re.sub(r"Profiler$", "", class_name)
+        snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", base_name).lower()
+        return f"profile.{snake_name}"
 
 
 

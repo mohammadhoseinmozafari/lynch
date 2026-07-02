@@ -5,7 +5,6 @@ from .models import (
 	SegmentProfile,
 )
 from .rate_profiler import (
-	MissingRateProfiler,
     ColumnMissingRateProfiler,
 	DistributionMissingRateProfiler,
 	RowsMissingRateProfiler,
@@ -18,6 +17,5 @@ __all__ = [
 	"SegmentProfile",
 	"ColumnMissingRateProfiler",
 	"DistributionMissingRateProfiler",
-	"MissingRateProfiler",
 	"RowsMissingRateProfiler",
 ]
