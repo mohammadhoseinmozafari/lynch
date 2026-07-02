@@ -1,7 +1,6 @@
 import math
 
 import pandas as pd
-import pytest
 
 from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
@@ -18,19 +17,39 @@ def base_profile() -> DataProfile:
     return profile
 
 
-
-def test_rows_profiler_writes_deterministic_samples_and_metrics():
-    dataframe = pd.DataFrame(
-        {
-            "a": [None, None, None, 1],
-            "b": [None, None, 2, 2],
-        }
-    )
+def test_column_profiler_returns_namespace_without_mutating_profile():
     profile = base_profile()
 
-    RowsMissingRateProfiler(sample_size=1, threshold=0.5).profile(dataframe, profile)
+    namespace = ColumnMissingRateProfiler().profile(
+        pd.DataFrame({"a": [1, None], "b": [None, None]}),
+        profile,
+    )
 
-    metrics = profile.namespaces["missingness.row_rates"].metrics
+    assert namespace.name == "missingness.column_rates"
+    assert namespace.metrics == {
+        "missing_rate_by_column": {"a": 0.5, "b": 1.0},
+        "missing_count_by_column": {"a": 1, "b": 2},
+        "non_missing_count_by_column": {"a": 1, "b": 0},
+        "total_rows": 2,
+    }
+    assert "missingness.column_rates" not in profile.capabilities
+    assert profile.namespaces == {}
+
+
+def test_rows_profiler_returns_deterministic_metrics_without_mutation():
+    profile = base_profile()
+    namespace = RowsMissingRateProfiler(sample_size=1, threshold=0.5).profile(
+        pd.DataFrame(
+            {
+                "a": [None, None, None, 1],
+                "b": [None, None, 2, 2],
+            }
+        ),
+        profile,
+    )
+
+    metrics = namespace.metrics
+    assert namespace.name == "missingness.row_rates"
     assert metrics["full_missing_rows_count"] == 2
     assert metrics["full_missing_rows_rate"] == 0.5
     assert metrics["high_missing_rows_count"] == 1
@@ -39,42 +58,36 @@ def test_rows_profiler_writes_deterministic_samples_and_metrics():
         "full_missing_rows": [1],
         "high_missing_rows": [2],
     }
-    assert metrics["threshold"] == 0.5
-    assert metrics["sample_size"] == 1
-    assert metrics["total_rows"] == 4
+    assert profile.namespaces == {}
 
 
-def test_distribution_reuses_column_namespace():
+def test_distribution_reuses_existing_column_namespace_without_mutation():
     profile = base_profile()
-    profile.set_namespace(
-        ProfileNamespace(
-            name="missingness.column_rates",
-            metrics={"missing_rate_by_column": {"a": 0.0, "b": 1.0}},
-        )
+    cached_namespace = ProfileNamespace(
+        name="missingness.column_rates",
+        metrics={"missing_rate_by_column": {"a": 0.0, "b": 1.0}},
     )
-    profile.add_capability("missingness.column_rates")
+    profile.set_namespace(cached_namespace)
 
-    # The dataframe deliberately disagrees with the cached values.
-    DistributionMissingRateProfiler().profile(
+    namespace = DistributionMissingRateProfiler().profile(
         pd.DataFrame({"a": [1, 1], "b": [1, 1]}), profile
     )
 
-    metrics = profile.namespaces["missingness.distribution"].metrics
-    assert metrics["mean"] == 0.5
-    assert metrics["median"] == 0.5
-    assert metrics["min"] == 0.0
-    assert metrics["max"] == 1.0
+    assert namespace.metrics["mean"] == 0.5
+    assert namespace.metrics["median"] == 0.5
+    assert namespace.metrics["min"] == 0.0
+    assert namespace.metrics["max"] == 1.0
+    assert set(profile.namespaces) == {"missingness.column_rates"}
 
 
 def test_distribution_falls_back_to_row_rates():
-    profile = base_profile()
-    DistributionMissingRateProfiler().profile(
-        pd.DataFrame({"a": [None, 1], "b": [None, 1]}), profile
+    namespace = DistributionMissingRateProfiler().profile(
+        pd.DataFrame({"a": [None, 1], "b": [None, 1]}),
+        base_profile(),
     )
 
-    metrics = profile.namespaces["missingness.distribution"].metrics
-    assert metrics["mean"] == 0.5
-    assert metrics["median"] == 0.5
-    assert metrics["min"] == 0.0
-    assert metrics["max"] == 1.0
-    assert not math.isnan(metrics["std"])
+    assert namespace.metrics["mean"] == 0.5
+    assert namespace.metrics["median"] == 0.5
+    assert namespace.metrics["min"] == 0.0
+    assert namespace.metrics["max"] == 1.0
+    assert not math.isnan(namespace.metrics["std"])

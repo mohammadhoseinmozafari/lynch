@@ -7,6 +7,7 @@ import pandas as pd
 from ulid import ulid
 
 from case.domain.value_objects.data_profile import DataProfile
+from case.domain.value_objects.profile_namespace import ProfileNamespace
 
 
 class ProfilerType(str, Enum):
@@ -27,12 +28,15 @@ class DatasetProfiler(ABC):
         self.profiler_type: ProfilerType = ProfilerType.DATASET
 
     @abstractmethod
-    def profile(self, df: pd.DataFrame, profile: DataProfile) -> None:
+    def profile(
+        self,
+        df: pd.DataFrame,
+        profile: DataProfile,
+    ) -> ProfileNamespace:
         pass
 
 
     @property
     def capability_name(self) -> str:
        return self.capability
-
 
