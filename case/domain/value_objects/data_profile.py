@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import Dict, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -45,6 +45,16 @@ class DataProfile(BaseModel) :
 
     def get_feature_names (self) -> Set[str]:
         return set(self.feature_profiles.keys())
+    
+    def require_namespace(self, name: str) -> ProfileNamespace:
+        namespace = self.get_namespace(name)
+        if namespace is None:
+            raise MissingProfileDependencyError(
+            f"Required profile namespace '{name}' is missing"
+            )
+        return namespace
+    
+    
 
 
     @field_validator('feature_profiles')
