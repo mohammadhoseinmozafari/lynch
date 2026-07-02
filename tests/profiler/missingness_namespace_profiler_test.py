@@ -1,12 +1,15 @@
 import math
 
+import numpy as np
 import pandas as pd
+import pytest
 
 from case.domain.value_objects.data_profile import DataProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
 from data_investigation.missingness.profilers.rate_profiler import (
+    ColumnDistributionMissingRateProfiler,
     ColumnMissingRateProfiler,
-    DistributionMissingRateProfiler,
+    RowsDistributionMissingRateProfiler,
     RowsMissingRateProfiler,
 )
 
@@ -69,7 +72,7 @@ def test_distribution_reuses_existing_column_namespace_without_mutation():
     )
     profile.set_namespace(cached_namespace)
 
-    namespace = DistributionMissingRateProfiler().profile(
+    namespace = ColumnDistributionMissingRateProfiler().profile(
         pd.DataFrame({"a": [1, 1], "b": [1, 1]}), profile
     )
 
@@ -80,8 +83,8 @@ def test_distribution_reuses_existing_column_namespace_without_mutation():
     assert set(profile.namespaces) == {"missingness.column_rates"}
 
 
-def test_distribution_falls_back_to_row_rates():
-    namespace = DistributionMissingRateProfiler().profile(
+def test_rows_distribution_uses_row_rates():
+    namespace = RowsDistributionMissingRateProfiler().profile(
         pd.DataFrame({"a": [None, 1], "b": [None, 1]}),
         base_profile(),
     )
@@ -91,3 +94,76 @@ def test_distribution_falls_back_to_row_rates():
     assert namespace.metrics["min"] == 0.0
     assert namespace.metrics["max"] == 1.0
     assert not math.isnan(namespace.metrics["std"])
+
+
+@pytest.mark.parametrize("sample_size", [-1, 1.5, True, "2"])
+def test_rows_profiler_rejects_invalid_sample_size(sample_size):
+    with pytest.raises(ValueError, match="sample_size"):
+        RowsMissingRateProfiler(sample_size=sample_size)
+
+
+@pytest.mark.parametrize("threshold", [-0.1, 1.1, np.nan, np.inf, True, "0.5"])
+def test_rows_profiler_rejects_invalid_threshold(threshold):
+    with pytest.raises(ValueError, match="threshold"):
+        RowsMissingRateProfiler(threshold=threshold)
+
+
+@pytest.mark.parametrize(
+    "profiler", [RowsMissingRateProfiler(), RowsDistributionMissingRateProfiler()]
+)
+def test_row_profilers_reject_dataframes_without_columns(profiler):
+    with pytest.raises(ValueError, match="at least one column"):
+        profiler.profile(pd.DataFrame(index=[0]), base_profile())
+
+
+def test_column_profiler_rejects_duplicate_columns():
+    df = pd.DataFrame([[1, None]], columns=["value", "value"])
+
+    with pytest.raises(ValueError, match="columns must be unique"):
+        ColumnMissingRateProfiler().profile(df, base_profile())
+
+
+@pytest.mark.parametrize(
+    "rates",
+    [
+        [0.5],
+        {"a": -0.1},
+        {"a": 1.1},
+        {"a": np.nan},
+        {"a": np.inf},
+        {"a": True},
+        {"wrong_column": 0.5},
+    ],
+)
+def test_column_distribution_rejects_invalid_rate_metrics(rates):
+    profile = base_profile()
+    profile.set_namespace(
+        ProfileNamespace(
+            name="missingness.column_rates",
+            metrics={"missing_rate_by_column": rates},
+        )
+    )
+
+    with pytest.raises(ValueError):
+        ColumnDistributionMissingRateProfiler().profile(
+            pd.DataFrame({"a": [None, 1]}), profile
+        )
+
+
+def test_column_distribution_rejects_rate_count_inconsistency():
+    profile = base_profile()
+    profile.set_namespace(
+        ProfileNamespace(
+            name="missingness.column_rates",
+            metrics={
+                "missing_rate_by_column": {"a": 0.5},
+                "missing_count_by_column": {"a": 2},
+                "total_rows": 2,
+            },
+        )
+    )
+
+    with pytest.raises(ValueError, match="inconsistent with its count"):
+        ColumnDistributionMissingRateProfiler().profile(
+            pd.DataFrame({"a": [None, 1]}), profile
+        )

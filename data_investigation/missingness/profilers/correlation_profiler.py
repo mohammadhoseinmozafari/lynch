@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from itertools import combinations
 from math import sqrt
-from typing import Any, Mapping
+from numbers import Integral
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -31,22 +33,19 @@ class MissingnessCorrelationProfiler(DatasetProfiler):
         df: pd.DataFrame,
         profile: DataProfile,
     ) -> ProfileNamespace:
-        """Return pairwise binary-missingness metrics in deterministic order.
-        """
-        
+        """Return pairwise binary-missingness metrics in deterministic order."""
         column_rates_namespace = profile.require_namespace("missingness.column_rates")
-        base_name_space = profile.require_namespace("profile.base")
-
-        
         counts = column_rates_namespace.require_metric("missing_count_by_column")
-        total_rows = base_name_space.require_metric("total_rows")
-        
+        total_rows = len(df)
         eligible_columns = list(df.columns)
+        self._validate_cached_count_columns(counts, eligible_columns)
+        
         missing_matrix = df[eligible_columns].isna().to_numpy(dtype=np.uint8)
 
         accumulation_matrix = missing_matrix.astype(np.uint64, copy=False)
         both_missing = accumulation_matrix.T @ accumulation_matrix
         matrix_missing_counts = accumulation_matrix.sum(axis=0, dtype=np.uint64)
+        
 
         missing_counts = np.asarray(
             [
@@ -93,6 +92,21 @@ class MissingnessCorrelationProfiler(DatasetProfiler):
         )
 
 
+
+
+
+    @staticmethod
+    def _validate_cached_count_columns(
+        cached_counts: Any,
+        eligible_columns: list[Any],
+    ) -> None:
+        if not isinstance(cached_counts, Mapping):
+            raise ValueError("missing_count_by_column must be a mapping")
+        if set(cached_counts) != set(eligible_columns):
+            raise ValueError(
+                "Cached missing-count columns do not match DataFrame columns"
+            )
+
     @staticmethod
     def _missing_count(
         column: Any,
@@ -101,12 +115,16 @@ class MissingnessCorrelationProfiler(DatasetProfiler):
         total_rows: int,
     ) -> int:
         """Return and validate a cached count, or use the matrix-derived count."""
-        raw_count = cached_counts.get(column, fallback_count)
+        raw_count = cached_counts[column]
         if isinstance(raw_count, bool) or not isinstance(raw_count, (int, np.integer)):
             raise ValueError(f"Invalid missing count for column {column!r}")
         count = int(raw_count)
         if count < 0 or count > total_rows:
             raise ValueError(f"Invalid missing count for column {column!r}: {count}")
+        if count != fallback_count:
+            raise ValueError(
+                f"Cached missing count for column {column!r} does not match DataFrame"
+            )
         return count
 
     @staticmethod
@@ -120,6 +138,12 @@ class MissingnessCorrelationProfiler(DatasetProfiler):
         total_rows: int,
     ) -> dict[str, Any]:
         """Build all MVP metrics for one pair with safe zero handling."""
+        MissingnessCorrelationProfiler._validate_contingency_table(
+            total_rows=total_rows,
+            left_missing_count=left_missing_count,
+            right_missing_count=right_missing_count,
+            both_missing_count=both_missing_count,
+        )
         union_missing_count = (
             left_missing_count + right_missing_count - both_missing_count
         )
@@ -189,6 +213,30 @@ class MissingnessCorrelationProfiler(DatasetProfiler):
             "valid_pair": not invalid_reasons,
             "invalid_reason": "; ".join(invalid_reasons) or None,
         }
+
+    @staticmethod
+    def _validate_contingency_table(
+        *,
+        total_rows: int,
+        left_missing_count: int,
+        right_missing_count: int,
+        both_missing_count: int,
+    ) -> None:
+        if both_missing_count < 0 or both_missing_count > min(
+            left_missing_count, right_missing_count
+        ):
+            raise ValueError("Both-missing count is inconsistent with marginal counts")
+
+        n11 = both_missing_count
+        n10 = left_missing_count - n11
+        n01 = right_missing_count - n11
+        n00 = total_rows - n11 - n10 - n01
+        if min(n00, n01, n10, n11) < 0:
+            raise ValueError("Missingness contingency table contains negative cells")
+
+        union_missing_count = left_missing_count + right_missing_count - n11
+        if union_missing_count > total_rows:
+            raise ValueError("Union missing count exceeds total_rows")
 
     @staticmethod
     def _phi_correlation(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import Any, Dict, Optional, Set
+from typing import Dict, Optional, Set
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -8,10 +8,11 @@ from case.domain.value_objects.data_feature_profile import DataFeatureProfile
 from case.domain.value_objects.profile_namespace import ProfileNamespace
 
 
+class MissingProfileDependencyError(RuntimeError):
+    """Raised when a required profile namespace is unavailable."""
 
 
-
-class DataProfile(BaseModel) :
+class DataProfile(BaseModel):
     """
     Statistical summary of the data, used for drift detection and baseline comparisons.
     Contains per‑feature statistics and a timestamp.
@@ -43,21 +44,18 @@ class DataProfile(BaseModel) :
         self.namespaces[namespace.name] = namespace
         self.touch()
 
-    def get_feature_names (self) -> Set[str]:
+    def get_feature_names(self) -> Set[str]:
         return set(self.feature_profiles.keys())
-    
+
     def require_namespace(self, name: str) -> ProfileNamespace:
         namespace = self.get_namespace(name)
         if namespace is None:
             raise MissingProfileDependencyError(
-            f"Required profile namespace '{name}' is missing"
+                f"Required profile namespace '{name}' is missing"
             )
         return namespace
-    
-    
 
-
-    @field_validator('feature_profiles')
+    @field_validator("feature_profiles")
     def check_feature_names_match_keys(cls, v: dict) -> dict:
         """Ensure each DataFeatureProfile's internal name matches its dictionary key."""
         for key, profile in v.items():

@@ -1,9 +1,11 @@
 from .profilers import (
 	ColumnMissingRateProfile,
 	ColumnMissingRateProfiler,
-	DistributionMissingRateProfiler,
+	ColumnDistributionMissingRateProfiler,
 	MissingnessDistributionProfile,
+	MissingnessCorrelationProfiler,
 	RowsMissingRateProfile,
+	RowsDistributionMissingRateProfiler,
 	RowsMissingRateProfiler,
 	SegmentProfile,
 )
@@ -11,9 +13,11 @@ from .profilers import (
 __all__ = [
 	"ColumnMissingRateProfile",
 	"ColumnMissingRateProfiler",
-	"DistributionMissingRateProfiler",
+	"ColumnDistributionMissingRateProfiler",
 	"MissingnessDistributionProfile",
+	"MissingnessCorrelationProfiler",
 	"RowsMissingRateProfile",
+	"RowsDistributionMissingRateProfiler",
 	"RowsMissingRateProfiler",
 	"SegmentProfile",
 ]

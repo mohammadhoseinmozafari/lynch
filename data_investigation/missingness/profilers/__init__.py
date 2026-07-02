@@ -6,9 +6,11 @@ from .models import (
 )
 from .rate_profiler import (
     ColumnMissingRateProfiler,
-	DistributionMissingRateProfiler,
+	ColumnDistributionMissingRateProfiler,
+	RowsDistributionMissingRateProfiler,
 	RowsMissingRateProfiler,
 )
+from .correlation_profiler import MissingnessCorrelationProfiler
 
 __all__ = [
 	"ColumnMissingRateProfile",
@@ -16,6 +18,8 @@ __all__ = [
 	"RowsMissingRateProfile",
 	"SegmentProfile",
 	"ColumnMissingRateProfiler",
-	"DistributionMissingRateProfiler",
+	"ColumnDistributionMissingRateProfiler",
+	"RowsDistributionMissingRateProfiler",
 	"RowsMissingRateProfiler",
+	"MissingnessCorrelationProfiler",
 ]
