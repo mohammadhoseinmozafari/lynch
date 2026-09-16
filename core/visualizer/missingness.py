@@ -315,8 +315,6 @@ importing/instantiating the analyzer never touches matplotlib.
 """
 
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import PercentFormatter
 
 
 

@@ -1,7 +1,0 @@
-{
-    "snapshot_type": "pip-lock",
-    "python_version": "3.10.12",
-    "specification": "requests==2.31.0\nurllib3==2.1.0\ncertifi==2023.11.17\nclick==8.1.7",
-    "system_packages": ["docker=24.0.7", "git-2.39.2"]
- 
-}

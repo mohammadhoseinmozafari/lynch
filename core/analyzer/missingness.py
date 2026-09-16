@@ -5,7 +5,6 @@ from typing import  Literal, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from case.domain.value_objects.profile_namespace import ProfileNamespace
 from core.visualizer.missingness import MissingnessClustersVisualizer
 from .analyzer import Analyzer, AnalyzerType
 from scipy import stats
@@ -560,7 +559,7 @@ class MissingnessCorrelation(Analyzer):
         if varying.shape[1] < 2:
             return pd.DataFrame()
         return varying.astype(int).corr().round(3)
-    
+        
     def missing_value_correlation(self) -> pd.DataFrame:
         """
         For each column with missing values, tests whether its missingness

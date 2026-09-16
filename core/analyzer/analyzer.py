@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 
 
-from case.domain.value_objects.profile_namespace import ProfileNamespace
 
 
 class AnalyzerType(str, Enum):
