@@ -27,9 +27,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 
-from core.analyzer.missingness import ColumnsMissingness,RowsMissingness ,MissingnessCorrelation, MissingnessClusters
 from scipy.cluster.hierarchy import dendrogram
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from core.analyzer.missingness import (
+        ColumnsMissingness,
+        RowsMissingness,
+        MissingnessCorrelation,
+        MissingnessClusters,
+    )
 # ----------------------------------------------------------------------
 # Shared styling helpers (kept tiny + local so Visualizers stay readable)
 # ----------------------------------------------------------------------
@@ -317,7 +324,7 @@ from matplotlib.ticker import PercentFormatter
 # Plotter
 # ----------------------------------------------------------------------
 
-class MissingnessClustersPlotter:
+class MissingnessClustersVisualizer:
     """Visualization accessor for MissingnessClusters.
 
     Usage:

@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from case.domain.value_objects.profile_namespace import ProfileNamespace
-from core.visualizer.missingness import MissingnessClustersPlotter
+from core.visualizer.missingness import MissingnessClustersVisualizer
 from .analyzer import Analyzer, AnalyzerType
 from scipy import stats
 
@@ -682,7 +682,7 @@ class MissingnessClusters(Analyzer):
         super().__init__()
         self.df = df
         self.mask = df.isna()
-        self._plot: Optional["MissingnessClustersPlotter"] = None
+        self._plot: Optional["MissingnessClustersVisualizer"] = None
  
         # only columns that actually vary in missingness carry signal;
         # all-missing / all-present columns would just pad every
@@ -833,8 +833,8 @@ class MissingnessClusters(Analyzer):
         }
  
     @property
-    def plot(self) -> "MissingnessClustersPlotter":
+    def plot(self) -> "MissingnessClustersVisualizer":
         if self._plot is None:
-            self._plot = MissingnessClustersPlotter(self)
+            self._plot = MissingnessClustersVisualizer(self)
         return self._plot
  

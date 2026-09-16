@@ -1,6 +1,6 @@
 
-from core.analyzer.missingness import ColumnsMissingness, RowsMissingness, MissingnessCorrelation
-from core.visualizer.missingness import ColumnsMissingnessVisualizer, RowsMissingnessVisualizer, MissingnessCorrelationVisualizer, MissingnessClusters
+from core.analyzer.missingness import ColumnsMissingness, RowsMissingness, MissingnessCorrelation, MissingnessClusters
+from core.visualizer.missingness import ColumnsMissingnessVisualizer, RowsMissingnessVisualizer, MissingnessCorrelationVisualizer, MissingnessClustersVisualizer
 __all__ = [
     "ColumnsMissingness",
     "ColumnsMissingnessVisualizer",
@@ -8,6 +8,7 @@ __all__ = [
     "MissingnessCorrelationVisualizer",
     "RowsMissingness",
     "MissingnessCorrelation",
-    "MissingnessClusters"
+    "MissingnessClusters",
+    "MissingnessClustersVisualizer"
 ]
 
