@@ -1,3 +1,4 @@
-from api.inspect import InspectionReport, inspect
+from api.dataset import Dataset
+from api.model import Model
 
-__all__ = ["inspect", "InspectionReport"]
+__all__ = ["Dataset", "Model"]
