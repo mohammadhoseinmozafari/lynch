@@ -1,5 +1,8 @@
-from core.analyzer.missingness import ColumnsMissingness, RowsMissingness
+from core.analyzer.missingness import ColumnsMissingness, RowsMissingness, MissingnessCorrelation, VectorizedMissingnessCorrelation
 __all__ = [
     "ColumnsMissingness",
-    "RowsMissingness"
+    "RowsMissingness",
+    "VectorizedMissingnessCorrelation",
+    "MissingnessCorrelation"
+
 ]
