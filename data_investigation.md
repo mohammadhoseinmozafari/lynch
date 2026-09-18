@@ -103,7 +103,7 @@ To assess the trustworthiness of labels and uncover systematic labeling errors t
 
 **Key Responsibilities**
 - **Confidence‑based mislabel detection**  
-  - Train a fast surrogate model (or use an existing model from **MEMS**) via **ISS** to get predictions on training data.  
+  - Train a fast surrogate model to get predictions on training data.  
   - Apply confident‑learning techniques: flag instances where the model is very confident but disagrees with the given label.  
   - Separate model blindness from genuine label noise by checking consistency across multiple models or folds.
 

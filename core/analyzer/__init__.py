@@ -1,8 +1,8 @@
-from .analyzer import Analyzer
-from .registry import AnalyzerRegistry
+from .analyzer import Analyzer , AnalyzerType , AnalysisResult
 
 
 __all__ = [
     "Analyzer",
-    "AnalyzerRegistry"
+    "AnalysisResult",
+    "AnalyzerType"
 ]

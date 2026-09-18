@@ -23,10 +23,15 @@ matplotlib.
 from __future__ import annotations
 
 from typing import Mapping, Optional
-
+import numpy as np
 import pandas as pd
 from .analyzer import Analyzer, AnalyzerType
 from core.visualizer.duplicates import ExactDuplicatesVisualizer
+from itertools import combinations
+from typing import Literal, Mapping, Optional
+
+from scipy.spatial.distance import pdist, squareform
+
 
 def _validate_column_exists(df: pd.DataFrame, col: str, arg_name: str) -> None:
     if col not in df.columns:
@@ -360,7 +365,502 @@ class ExactDuplicates(Analyzer):
         return out
 
     @property
-    def plot(self) -> "ExactDuplicatesPlotter":
+    def plot(self) -> "ExactDuplicatesVisualizer":
         if self._plot is None:
-            self._plot = ExactDuplicatesPlotter(self)
+            self._plot = ExactDuplicatesVisualizer(self)
         return self._plot
+
+
+
+"""
+NearDuplicates: pairs of rows that are "almost" identical — differ in a
+small number of columns, or differ only by small amounts in continuous
+features. Per spec (section 4), near-duplicates are often more insidious
+than exact duplicates because they pass naive uniqueness checks but
+still corrupt evaluation the same way exact cross-split duplicates do.
+
+Similarity is STRUCTURAL (column values), not semantic — "NYC" and
+"New York City" are not detected as near-duplicates by this module.
+That's a data-cleaning problem, not a duplicate-detection problem in
+this diagnostic sense (explicitly out of scope per spec).
+
+Similarity metric: a Gower-style blend of
+- numeric columns: per-column min-max-scaled, similarity = 1 - scaled
+  Euclidean distance across numeric columns (normalized by sqrt of
+  column count). Euclidean rather than mean-absolute-difference is
+  used deliberately: with few numeric columns (1-3, common in
+  practice), an averaging metric lets closeness on just one column
+  buy a large chunk of the similarity score, producing many
+  false-positive "near-duplicates" among genuinely unrelated rows.
+  Squaring the gaps (Euclidean) penalizes divergence on any single
+  column more sharply, which cuts that false-positive rate a lot but
+  does not eliminate it -- see the threshold guidance below.
+- categorical columns: one-hot encoded, Jaccard similarity
+blended by the relative count of numeric vs categorical columns, so
+neither type dominates purely because of how many columns exist.
+
+IMPORTANT — on threshold choice: with only 1-2 numeric columns, random
+unrelated rows can still land at surprisingly high similarity purely
+by chance (min-max scaling means "close" is relative to the full
+column range, and real data often clusters near the middle of that
+range). The default threshold is set high (0.97) specifically to
+guard against this. Before trusting a chosen threshold, call
+`false_positive_rate(threshold)` to see what fraction of a random
+sample of unrelated pairs would clear that bar on your actual data --
+if it's non-trivial, raise the threshold, add more columns to the
+comparison, or narrow numeric_cols/categorical_cols to the columns
+that actually define entity identity for your use case.
+
+Two computation modes:
+- method="exact": true O(n^2) pairwise comparison via scipy pdist.
+  Fully faithful, but the module refuses to run it above
+  `max_exact_rows` (default 5,000) and raises with a clear message
+  instead of silently taking a very long time.
+- method="lsh": approximate, for larger datasets. Rows are bucketed by
+  a hash of a coarse "blocking key" (by default, the categorical
+  columns' values, or a caller-supplied subset of columns) and only
+  compared within-bucket. This is manual blocking, not true
+  MinHash/LSH — documented here explicitly as an approximation that
+  trades recall (near-duplicate pairs that land in different buckets
+  are missed) for tractable runtime. If you need true LSH, a
+  datasketch-based implementation is a reasonable future upgrade but
+  is not implemented here to avoid adding that dependency.
+
+Follows the same shape as the other analyzers: pure-data Analyzer
+class, plotting delegated to a Plotter behind a lazily-constructed
+`.plot` property.
+"""
+
+
+
+class NearDuplicates(Analyzer):
+    """Near-duplicate (fuzzy) row detection.
+
+    Usage:
+        nd = NearDuplicates(df, numeric_cols=["amount", "age"],
+                             categorical_cols=["region", "category"])
+        nd.find_pairs(threshold=0.9)
+
+        nd = NearDuplicates(df, numeric_cols=[...], categorical_cols=[...],
+                             split_col="split", label_col="target")
+        nd.pairs_by_scope()
+        nd.differing_columns_summary()
+
+        # large dataset -> approximate mode
+        nd = NearDuplicates(df, numeric_cols=[...], categorical_cols=[...],
+                             method="lsh", block_cols=["region"])
+        nd.find_pairs(threshold=0.9)
+    """
+
+    id = "dataset.duplicates.near"
+
+    capability = "duplicates.near"
+
+    requires = {"profile.base"}
+
+    provides = {capability}
+
+    analyzer_type = AnalyzerType.DATASET
+
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        numeric_cols: Optional[list[str]] = None,
+        categorical_cols: Optional[list[str]] = None,
+        split_col: Optional[str] = None,
+        label_col: Optional[str] = None,
+        method: Literal["exact", "lsh"] = "exact",
+        threshold: float = 0.97,
+        block_cols: Optional[list[str]] = None,
+        max_exact_rows: int = 5000,
+    ) -> None:
+        super().__init__()
+
+        if not 0.0 < threshold <= 1.0:
+            raise ValueError("threshold must be in (0.0, 1.0].")
+
+        for col in (split_col, label_col):
+            if col is not None:
+                _validate_column_exists(df, col, "split_col/label_col")
+
+        exclude = {c for c in (split_col, label_col) if c is not None}
+
+        if numeric_cols is None and categorical_cols is None:
+            # auto-infer from dtype, excluding split/label columns
+            candidate_cols = [c for c in df.columns if c not in exclude]
+            numeric_cols = [
+                c for c in candidate_cols if pd.api.types.is_numeric_dtype(df[c])
+            ]
+            categorical_cols = [
+                c for c in candidate_cols if c not in numeric_cols
+            ]
+        else:
+            numeric_cols = numeric_cols or []
+            categorical_cols = categorical_cols or []
+
+        for col in numeric_cols:
+            _validate_column_exists(df, col, "numeric_cols")
+        for col in categorical_cols:
+            _validate_column_exists(df, col, "categorical_cols")
+
+        overlap = set(numeric_cols) & set(categorical_cols)
+        if overlap:
+            raise ValueError(
+                f"Columns cannot be in both numeric_cols and categorical_cols: {overlap}"
+            )
+        if not numeric_cols and not categorical_cols:
+            raise ValueError(
+                "No numeric or categorical columns to compare. Pass "
+                "numeric_cols/categorical_cols explicitly, or ensure df "
+                "has comparable columns beyond split_col/label_col."
+            )
+
+        if method not in ("exact", "lsh"):
+            raise ValueError(f"Invalid method: {method!r}. Expected 'exact' or 'lsh'.")
+
+        if block_cols is not None:
+            for col in block_cols:
+                _validate_column_exists(df, col, "block_cols")
+
+        self.df = df
+        self.numeric_cols = numeric_cols
+        self.categorical_cols = categorical_cols
+        self.split_col = split_col
+        self.label_col = label_col
+        self.method = method
+        self.threshold = threshold
+        self.block_cols = block_cols or list(categorical_cols)
+        self.max_exact_rows = max_exact_rows
+        self._plot: Optional["NearDuplicatesPlotter"] = None
+
+        if method == "exact" and len(df) > max_exact_rows:
+            raise ValueError(
+                f"method='exact' requested on {len(df):,} rows, which exceeds "
+                f"max_exact_rows={max_exact_rows:,}. Exact pairwise comparison "
+                f"is O(n^2) and will not scale here. Either pass "
+                f"method='lsh' (approximate, blocked comparison), raise "
+                f"max_exact_rows explicitly if you understand the cost, or "
+                f"work on a sample."
+            )
+
+    def analyze(self, ctx: AnalysisContext) -> ProfileNamespace:
+        return super().analyze(ctx)
+
+    # ------------------------------------------------------------------
+    # Similarity computation
+    # ------------------------------------------------------------------
+
+    def _similarity_matrix_exact(self, indices: pd.Index) -> np.ndarray:
+        """Condensed pairwise similarity (scipy pdist format) for the
+        given row indices, blending numeric + categorical similarity."""
+        sub = self.df.loc[indices]
+        n = len(sub)
+        n_num = len(self.numeric_cols)
+        n_cat = len(self.categorical_cols)
+
+        if n_num > 0:
+            num = sub[self.numeric_cols].astype(float).values
+            col_min = np.nanmin(num, axis=0)
+            col_max = np.nanmax(num, axis=0)
+            col_range = col_max - col_min
+            col_range[col_range == 0] = 1.0
+            num_scaled = (num - col_min) / col_range
+            # pairwise scaled Euclidean distance, normalized by sqrt(n_num)
+            # so it lands roughly in [0, 1] regardless of column count,
+            # then converted to similarity. Euclidean (not cityblock) is
+            # used deliberately: squaring the per-column gaps penalizes
+            # a single large divergence more sharply, which matters a lot
+            # when there are only 1-2 numeric columns -- with cityblock
+            # (mean absolute difference), being close on one of two
+            # columns already buys half the similarity score, which
+            # produces a high false-positive rate against unrelated
+            # random rows. See NearDuplicates docstring for the default
+            # threshold guidance this implies.
+            num_sim = 1 - pdist(num_scaled, metric="euclidean") / np.sqrt(n_num)
+        else:
+            num_sim = None
+
+        if n_cat > 0:
+            cat_onehot = pd.get_dummies(
+                sub[self.categorical_cols].astype(str)
+            ).values.astype(bool)
+            cat_sim = 1 - pdist(cat_onehot, metric="jaccard")
+        else:
+            cat_sim = None
+
+        if num_sim is not None and cat_sim is not None:
+            w_num = n_num / (n_num + n_cat)
+            w_cat = n_cat / (n_num + n_cat)
+            blended = w_num * num_sim + w_cat * cat_sim
+        elif num_sim is not None:
+            blended = num_sim
+        else:
+            blended = cat_sim
+
+        return np.nan_to_num(blended, nan=0.0)
+
+    def _blocks(self) -> dict:
+        """Bucket row indices by a hash of block_cols. Rows in different
+        buckets are never compared under method='lsh' -- this is the
+        approximation. If block_cols is empty (no categorical columns
+        and none supplied), falls back to a single block, which is
+        equivalent to exact mode."""
+        if not self.block_cols:
+            return {"__all__": self.df.index}
+
+        keys = self.df[self.block_cols].astype(str).apply(
+            lambda row: tuple(row.values), axis=1
+        )
+        buckets: dict = {}
+        for idx, key in keys.items():
+            buckets.setdefault(key, []).append(idx)
+        return {k: pd.Index(v) for k, v in buckets.items()}
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def find_pairs(self, threshold: Optional[float] = None) -> pd.DataFrame:
+        """All row pairs with similarity >= threshold. Columns:
+        row_i, row_j, similarity, differing_columns (list of column
+        names where the two rows' values differ -- categorical: not
+        equal; numeric: not exactly equal. Useful for
+        differing_columns_summary() and for spotting label-only diffs).
+
+        method='exact': true pairwise comparison across all rows.
+        method='lsh': only compares rows within the same block (see
+        _blocks()); pairs spanning two blocks are never considered,
+        by design -- this is the recall/runtime tradeoff.
+        """
+        th = threshold if threshold is not None else self.threshold
+        if not 0.0 < th <= 1.0:
+            raise ValueError("threshold must be in (0.0, 1.0].")
+
+        results = []
+
+        if self.method == "exact":
+            blocks = {"__all__": self.df.index}
+        else:
+            blocks = self._blocks()
+
+        compare_cols = self.numeric_cols + self.categorical_cols
+
+        for _, idx in blocks.items():
+            if len(idx) < 2:
+                continue
+            sims = self._similarity_matrix_exact(idx)
+            sim_matrix = squareform(sims)
+            idx_list = list(idx)
+            n = len(idx_list)
+            for i, j in combinations(range(n), 2):
+                sim = sim_matrix[i, j]
+                if sim >= th:
+                    row_i, row_j = idx_list[i], idx_list[j]
+                    differing = [
+                        c for c in compare_cols
+                        if not _values_equal(self.df.at[row_i, c], self.df.at[row_j, c])
+                    ]
+                    results.append({
+                        "row_i": row_i,
+                        "row_j": row_j,
+                        "similarity": round(float(sim), 4),
+                        "differing_columns": differing,
+                        "n_differing": len(differing),
+                    })
+
+        if not results:
+            return pd.DataFrame(
+                columns=["row_i", "row_j", "similarity", "differing_columns", "n_differing"]
+            )
+
+        return (
+            pd.DataFrame(results)
+            .sort_values("similarity", ascending=False)
+            .reset_index(drop=True)
+        )
+
+    def pairs_by_scope(self, threshold: Optional[float] = None) -> dict:
+        """Split find_pairs() results into within-split vs cross-split
+        counts/rates. Requires split_col. Cross-split near-duplicates
+        carry the same evaluation-validity risk as cross-split exact
+        duplicates."""
+        if self.split_col is None:
+            raise ValueError(
+                "pairs_by_scope() requires split_col to be set in the constructor."
+            )
+
+        pairs = self.find_pairs(threshold=threshold)
+        if pairs.empty:
+            return {"within_split": 0, "cross_split": 0, "cross_split_rate": 0.0}
+
+        split_values = self.df[self.split_col]
+        is_cross = [
+            split_values.at[r["row_i"]] != split_values.at[r["row_j"]]
+            for _, r in pairs.iterrows()
+        ]
+        pairs = pairs.assign(is_cross_split=is_cross)
+
+        within = int((~pairs["is_cross_split"]).sum())
+        cross = int(pairs["is_cross_split"].sum())
+        total = within + cross
+        return {
+            "within_split": within,
+            "cross_split": cross,
+            "cross_split_rate": float(cross / total) if total else 0.0,
+            "pairs": pairs,
+        }
+
+    def differing_columns_summary(self, threshold: Optional[float] = None) -> pd.DataFrame:
+        """For all near-duplicate pairs, how often each column is the
+        one that differs. A column that is disproportionately often the
+        ONLY differing column is a mislabeling signal if that column is
+        label_col (per spec: a near-duplicate pair differing only in
+        the label looks like a labeling error wearing a near-duplicate
+        costume, not a genuine structural near-duplicate)."""
+        pairs = self.find_pairs(threshold=threshold)
+        if pairs.empty:
+            return pd.DataFrame(columns=["column", "times_differing", "times_sole_diff"])
+
+        compare_cols = self.numeric_cols + self.categorical_cols
+        counts = {c: 0 for c in compare_cols}
+        sole_diff_counts = {c: 0 for c in compare_cols}
+
+        for cols in pairs["differing_columns"]:
+            for c in cols:
+                counts[c] += 1
+            if len(cols) == 1:
+                sole_diff_counts[cols[0]] += 1
+
+        out = pd.DataFrame({
+            "column": list(counts.keys()),
+            "times_differing": list(counts.values()),
+            "times_sole_diff": [sole_diff_counts[c] for c in counts.keys()],
+        })
+
+        if self.label_col is not None and self.label_col not in out["column"].values:
+            # label_col is tracked separately from compare_cols by design
+            # (it's not part of the similarity computation) -- but the
+            # spec explicitly wants to know if label is the "only" diff,
+            # so check it directly here.
+            label_only = 0
+            label_values = self.df[self.label_col]
+            for _, r in pairs.iterrows():
+                if len(r["differing_columns"]) == 0:
+                    # identical on all compared columns; check label separately
+                    if label_values.at[r["row_i"]] != label_values.at[r["row_j"]]:
+                        label_only += 1
+            out = pd.concat([out, pd.DataFrame([{
+                "column": f"{self.label_col} (label, not in similarity calc)",
+                "times_differing": label_only,
+                "times_sole_diff": label_only,
+            }])], ignore_index=True)
+
+        return out.sort_values("times_sole_diff", ascending=False).reset_index(drop=True)
+
+    def near_vs_exact_ratio(self, exact_duplicates, threshold: Optional[float] = None) -> dict:
+        """Ratio of near-duplicate pair count to exact-duplicate pair
+        count. Takes an already-constructed ExactDuplicates instance
+        (composition, not recomputation) so the two counts are
+        comparable and consistent.
+
+        A high ratio (many near-dupes, few exact) suggests augmentation
+        artifacts or measurement noise rather than a copy-paste bug.
+        """
+        near_pairs = self.find_pairs(threshold=threshold)
+        n_near = len(near_pairs)
+
+        exact_groups = exact_duplicates.duplicate_groups()
+        # convert exact duplicate groups into an equivalent pair count
+        # (a group of size k contributes C(k,2) pairs) for a fair
+        # apples-to-apples comparison against near_pairs, which is
+        # already pair-shaped.
+        if exact_groups.empty:
+            n_exact_pairs = 0
+        else:
+            n_exact_pairs = int(
+                exact_groups["size"].apply(lambda k: k * (k - 1) // 2).sum()
+            )
+
+        return {
+            "n_near_pairs": n_near,
+            "n_exact_pairs": n_exact_pairs,
+            "ratio": float(n_near / n_exact_pairs) if n_exact_pairs else float("inf") if n_near else 0.0,
+        }
+
+    def false_positive_rate(
+        self,
+        threshold: Optional[float] = None,
+        n_samples: int = 2000,
+        seed: int = 0,
+    ) -> dict:
+        """Empirically estimate how often UNRELATED rows would clear
+        the similarity threshold by chance, on this actual dataset.
+        Shuffles each column independently (destroying any real
+        relationship between rows while preserving each column's
+        marginal distribution), then measures what fraction of random
+        pairs from the shuffled data still score >= threshold.
+
+        A high rate here means the threshold is too lenient for this
+        column set -- e.g. because there are very few numeric columns,
+        or they're highly concentrated/low-variance -- and found
+        near-duplicate pairs should be treated skeptically until the
+        threshold is raised or more columns are included.
+        """
+        th = threshold if threshold is not None else self.threshold
+        rng = np.random.default_rng(seed)
+
+        shuffled = self.df[self.numeric_cols + self.categorical_cols].copy()
+        for c in shuffled.columns:
+            shuffled[c] = rng.permutation(shuffled[c].values)
+
+        n = min(n_samples, len(shuffled))
+        sample_idx = shuffled.sample(n, random_state=seed).index if n < len(shuffled) else shuffled.index
+
+        # reuse the similarity computation by temporarily pointing at
+        # the shuffled frame's values via a lightweight stand-in
+        original_df = self.df
+        self.df = shuffled
+        try:
+            sims = self._similarity_matrix_exact(sample_idx)
+        finally:
+            self.df = original_df
+
+        return {
+            "threshold": th,
+            "n_pairs_checked": len(sims),
+            "false_positive_rate": float((sims >= th).mean()),
+        }
+
+    def summary(self, threshold: Optional[float] = None) -> dict:
+        pairs = self.find_pairs(threshold=threshold)
+        out = {
+            "n_pairs": len(pairs),
+            "threshold": threshold if threshold is not None else self.threshold,
+            "method": self.method,
+        }
+        if not pairs.empty:
+            out["mean_similarity"] = float(pairs["similarity"].mean())
+            out["min_similarity"] = float(pairs["similarity"].min())
+
+        if self.split_col is not None:
+            scope = self.pairs_by_scope(threshold=threshold)
+            out["within_split_pairs"] = scope["within_split"]
+            out["cross_split_pairs"] = scope["cross_split"]
+            out["cross_split_rate"] = scope["cross_split_rate"]
+
+        return out
+
+    @property
+    def plot(self) -> "NearDuplicatesPlotter":
+        if self._plot is None:
+            self._plot = NearDuplicatesPlotter(self)
+        return self._plot
+
+
+def _values_equal(a, b) -> bool:
+    """NaN-safe equality check used for differing_columns."""
+    if pd.isna(a) and pd.isna(b):
+        return True
+    if pd.isna(a) or pd.isna(b):
+        return False
+    return a == b
