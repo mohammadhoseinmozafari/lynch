@@ -20,32 +20,21 @@ class ColumnsMissingness(Analyzer):
 
     analyzer_type = AnalyzerType.DATASET
 
-    def __init__(self, df) -> None:
+    def __init__(self) -> None:
         super().__init__()
-
-        self.df = df
-        self.mask = self.df.isna()
-
-        self.n = len(self.df)
-        self.counts = self.mask.sum(axis=0).astype(int)
-
-        self.rates = (
-            self.counts / self.n
-            if self.n > 0
-            else pd.Series(0.0, index=self.df.columns, dtype=float)
-        )
         self.visualizer = ColumnsMissingnessVisualizer()
 
-    def analyze(self, ctx: AnalysisContext) -> ProfileNamespace:
-        pass
 
-    def summary(self) -> AnalysisResult:
+    def summary(self, df : pd.DataFrame) -> AnalysisResult:
+        
+        counts , rates = self._context(df)
+
         summary = pd.DataFrame(
             {
-                "column": self.df.columns,
-                "missing_count": self.counts.values,
-                "missing_rate": self.rates.values,
-                "dtype": [str(t) for t in self.df.dtypes],
+                "column": df.columns,
+                "missing_count": counts.values,
+                "missing_rate": rates.values,
+                "dtype": [str(t) for t in df.dtypes],
             }
         ).sort_values("missing_rate", ascending=False).reset_index(drop=True)
         
@@ -58,10 +47,10 @@ class ColumnsMissingness(Analyzer):
             
         
 
-    def stats(self) -> AnalysisResult:
+    def stats(self, df: pd.DataFrame) -> AnalysisResult:
         metrics = ["mean", "median", "std", "min", "max", "p90", "p95", "p99"]
-
-        if self.rates.empty:
+        counts , rates = self._context(df)
+        if rates.empty:
             stats_df = pd.DataFrame(
                 0.0, index=metrics, columns=["rates", "counts"]
             )
@@ -69,24 +58,24 @@ class ColumnsMissingness(Analyzer):
             stats_df = pd.DataFrame(
                 {
                     "rates": [
-                        self.rates.mean(),
-                        self.rates.median(),
-                        self.rates.std(),
-                        self.rates.min(),
-                        self.rates.max(),
-                        self.rates.quantile(0.90),
-                        self.rates.quantile(0.95),
-                        self.rates.quantile(0.99),
+                        rates.mean(),
+                        rates.median(),
+                        rates.std(),
+                        rates.min(),
+                        rates.max(),
+                        rates.quantile(0.90),
+                        rates.quantile(0.95),
+                        rates.quantile(0.99),
                     ],
                     "counts": [
-                        self.counts.mean(),
-                        self.counts.median(),
-                        self.counts.std(),
-                        self.counts.min(),
-                        self.counts.max(),
-                        self.counts.quantile(0.90),
-                        self.counts.quantile(0.95),
-                        self.counts.quantile(0.99),
+                        counts.mean(),
+                        counts.median(),
+                        counts.std(),
+                        counts.min(),
+                        counts.max(),
+                        counts.quantile(0.90),
+                        counts.quantile(0.95),
+                        counts.quantile(0.99),
                     ],
                 },
                 index=metrics,
@@ -97,6 +86,19 @@ class ColumnsMissingness(Analyzer):
             visualizer=self.visualizer.visualize_stats,
         )
 
+    def _context(self, df: pd.DataFrame):
+        mask = df.isna()
+        n = len(df)
+        counts = mask.sum(axis=0).astype(int)
+
+        rates = (
+            counts / n
+            if n > 0
+            else pd.Series(0.0, index=df.columns, dtype=float)
+        )
+        return counts, rates
+
+        
 
 
 

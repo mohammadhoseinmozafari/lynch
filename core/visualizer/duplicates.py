@@ -13,18 +13,10 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 from typing import TYPE_CHECKING
-
+from .utils import _style_axes, _title
 if TYPE_CHECKING:
     from core.analyzer.duplicates import ExactDuplicates
 
-def _style_axes(fig, ax) -> None:
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
-    ax.set_axisbelow(True)
-
-
-def _title(ax, text: str) -> None:
-    ax.set_title(text, loc="left", fontsize=15, fontweight="bold", pad=15)
 
 
 class ExactDuplicatesVisualizer:

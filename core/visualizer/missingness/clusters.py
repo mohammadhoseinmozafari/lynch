@@ -1,131 +1,133 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import ListedColormap
 from matplotlib.ticker import PercentFormatter
-
 from scipy.cluster.hierarchy import dendrogram
-from core.analyzer.missingness import MissingnessClusters
+
+from core.visualizer.utils import _title, _style_axes
+
+
+def _set_serif() -> None:
+    plt.rcParams["font.family"] = "serif"
+    plt.rcParams["font.serif"] = ["Georgia", "Times New Roman", "DejaVu Serif"]
+
+
 class MissingnessClustersVisualizer:
-    """Visualization accessor for MissingnessClusters.
+    """Visualizations for MissingnessClusters results (ClusterResult)."""
 
-    Usage:
-        mcl = MissingnessClusters(df)
-        mcl.plot.sizes()
-        mcl.plot.pattern_matrix(top_n=10)
-        mcl.plot.dendrogram()   # requires method="hierarchical" to have run
-    """
-
-    def __init__(self, analyzer: "MissingnessClusters") -> None:
-        self._a = analyzer
-
-    def sizes(
-        self,
-        method: Literal["exact", "hierarchical"] = "exact",
-        k: int = 8,
-        top_n: int = 15,
-        figsize: tuple[float, float] = (9, 6),
-    ):
-        """Horizontal bar chart of cluster sizes (fraction of rows),
-        labeled by which columns are missing in that cluster."""
-        table = self._a.clusters(method=method, k=k)
-        if table.empty:
-            raise ValueError("No missingness clusters to plot.")
-
-        top = table.head(top_n).iloc[::-1]
-        labels = [
-            "complete" if not cols else " + ".join(cols)
-            for cols in top["missing_columns"]
-        ]
+    # ------------------------------------------------------------------
+    # Cluster sizes
+    # ------------------------------------------------------------------
+    def visualize_clusters(self, result, top: int = 15, figsize: tuple[float, float] = (10, 6)):
+        """Horizontal bars of cluster sizes with the defining columns annotated."""
+        _set_serif()
+        table = result.table
 
         fig, ax = plt.subplots(figsize=figsize)
-        ax.barh(labels, top["rate"], color="black")
-        ax.set_xlim(0, max(top["rate"].max() * 1.15, 0.05))
-        ax.set_xlabel("Share of rows")
-        ax.xaxis.set_major_formatter(PercentFormatter(1.0))
-        ax.set_title("Missingness Clusters", loc="left", fontsize=15,
-                      fontweight="bold", pad=15)
+        if table.empty:
+            ax.text(0.5, 0.5, "No varying missingness patterns", ha="center",
+                    va="center", style="italic", transform=ax.transAxes)
+            ax.set_axis_off()
+            _title(ax, "Missingness Clusters")
+            return fig, ax
 
-        for i, (rate, size) in enumerate(zip(top["rate"], top["size"])):
-            ax.text(rate + max(top["rate"].max() * 0.01, 0.002), i,
-                     f"{rate:.1%} (n={size:,})", va="center", ha="left",
-                     fontsize=9, color="black")
+        shown = table.head(top).iloc[::-1]  # largest on top
+        labels = [f"#{cid}" for cid in shown["cluster_id"]]
 
+        ax.barh(labels, shown["size"].values, color="black")
+        ax.set_xlabel("Rows", fontsize=11)
+        ax.set_ylabel("Cluster", fontsize=11)
         ax.grid(axis="x", alpha=0.2)
-        ax.set_axisbelow(True)
-        fig.patch.set_facecolor("white")
-        ax.set_facecolor("white")
+        _title(ax, "Missingness Clusters")
+
+        offset = max(shown["size"].max() * 0.01, 0.5)
+        for i, (_, r) in enumerate(shown.iterrows()):
+            cols = r["missing_columns"]
+            desc = "complete rows" if not cols else ", ".join(cols[:3]) + (
+                f" +{len(cols) - 3}" if len(cols) > 3 else ""
+            )
+            ax.text(
+                r["size"] + offset, i,
+                f"{r['size']:,}  ({r['rate']:.1%})  ·  {desc}",
+                va="center", ha="left", fontsize=9, color="black", fontstyle="italic",
+            )
+
+        ax.set_xlim(0, shown["size"].max() * 1.6)
+
+        if len(table) > top:
+            fig.text(0.99, 0.01, f"showing top {top} of {len(table)} clusters",
+                     ha="right", va="bottom", fontsize=8, fontstyle="italic", alpha=0.6)
+
+        _style_axes(fig, ax)
         fig.tight_layout()
         return fig, ax
 
-    def pattern_matrix(
-        self,
-        method: Literal["exact", "hierarchical"] = "exact",
-        k: int = 8,
-        top_n: int = 15,
-        figsize: tuple[float, float] = (9, 7),
-    ):
-        """Grid: rows = top clusters (ordered by size), columns = dataset
-        columns, cell filled if that column is missing in that cluster's
-        pattern. Makes shared-cause patterns visually obvious at a glance."""
-        table = self._a.clusters(method=method, k=k)
-        if table.empty:
-            raise ValueError("No missingness clusters to plot.")
+    # ------------------------------------------------------------------
+    # Pattern matrix
+    # ------------------------------------------------------------------
+    def visualize_pattern(self, result, top: int = 20, figsize: tuple[float, float] | None = None):
+        """Cluster x column matrix. Black = missing, white = present.
+        Cell shade shows the fraction of the cluster missing that column."""
+        _set_serif()
+        table, pattern = result.table, result.pattern
 
-        top = table.head(top_n)
-        cols = self._a.varying_cols
-        grid = np.zeros((len(top), len(cols)))
-        for i, missing_cols in enumerate(top["missing_columns"]):
-            for j, c in enumerate(cols):
-                grid[i, j] = 1 if c in missing_cols else 0
+        if table.empty:
+            return self.visualize_clusters(result)
+
+        pattern = pattern.head(top)
+        sizes = table.set_index("cluster_id").loc[pattern.index, "size"]
+        n_rows, n_cols = pattern.shape
+
+        if figsize is None:
+            figsize = (max(6, 0.55 * n_cols + 3), max(3, 0.4 * n_rows + 2))
 
         fig, ax = plt.subplots(figsize=figsize)
-        ax.imshow(grid, cmap="Greys", aspect="auto", vmin=0, vmax=1)
+        ax.imshow(pattern.values, aspect="auto", cmap="Greys", vmin=0, vmax=1)
 
-        ax.set_xticks(range(len(cols)))
-        ax.set_xticklabels(cols, rotation=45, ha="right")
-        ax.set_yticks(range(len(top)))
-        ax.set_yticklabels([f"{r:.1%} (n={s:,})" for r, s in zip(top["rate"], top["size"])])
-        ax.set_xlabel("Column")
-        ax.set_ylabel("Cluster (share of rows)")
-        ax.set_title("Missingness Pattern by Cluster", loc="left", fontsize=15,
-                      fontweight="bold", pad=15)
+        ax.set_xticks(range(n_cols))
+        ax.set_xticklabels(pattern.columns, rotation=60, ha="right", fontsize=9)
+        ax.set_yticks(range(n_rows))
+        ax.set_yticklabels(
+            [f"#{cid}  (n={sizes[cid]:,})" for cid in pattern.index], fontsize=9
+        )
 
-        # gridlines between cells
-        ax.set_xticks(np.arange(-0.5, len(cols), 1), minor=True)
-        ax.set_yticks(np.arange(-0.5, len(top), 1), minor=True)
-        ax.grid(which="minor", color="white", linewidth=1.5)
+        # thin cell separators
+        ax.set_xticks(np.arange(-0.5, n_cols, 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, n_rows, 1), minor=True)
+        ax.grid(which="minor", color="white", linewidth=1.2)
         ax.tick_params(which="minor", length=0)
 
-        fig.patch.set_facecolor("white")
+        _title(ax, "Missingness Pattern by Cluster")
+        _style_axes(fig, ax)
         fig.tight_layout()
         return fig, ax
 
-    def dendrogram(
-        self,
-        k: int = 8,
-        metric: str = "hamming",
-        figsize: tuple[float, float] = (10, 6),
-        truncate: Optional[int] = 30,
-    ):
-        """Dendrogram of row-wise hierarchical clustering on missingness
-        vectors. Running this triggers method="hierarchical" clustering
-        as a side effect (needed to compute the linkage matrix)."""
-        self._a._hierarchical_clusters(k=k, metric=metric)
-        Z = self._a._linkage
-
+    # ------------------------------------------------------------------
+    # Dendrogram
+    # ------------------------------------------------------------------
+    def visualize_dendrogram(self, result, figsize: tuple[float, float] = (10, 5)):
+        """Dendrogram of unique missingness signatures (hierarchical only)."""
+        _set_serif()
         fig, ax = plt.subplots(figsize=figsize)
-        kwargs = {"truncate_mode": "lastp", "p": truncate} if truncate else {}
-        dendrogram(Z, ax=ax, color_threshold=0, above_threshold_color="black", **kwargs)
-        ax.set_title("Row Missingness Dendrogram", loc="left", fontsize=15,
-                      fontweight="bold", pad=15)
-        ax.set_xlabel("Rows (or row groups)")
-        ax.set_ylabel("Distance")
-        ax.set_xticklabels([])
 
-        fig.patch.set_facecolor("white")
-        ax.set_facecolor("white")
+        if result.linkage is None:
+            ax.text(0.5, 0.5, "Dendrogram requires method='hierarchical'",
+                    ha="center", va="center", style="italic", transform=ax.transAxes)
+            ax.set_axis_off()
+            _title(ax, "Missingness Dendrogram")
+            return fig, ax
+
+        dendrogram(
+            result.linkage, ax=ax, no_labels=True,
+            color_threshold=0, above_threshold_color="black",
+        )
+        ax.set_ylabel(f"Distance ({result.meta.get('metric', 'hamming')})", fontsize=11)
+        ax.set_xlabel("Unique missingness signatures", fontsize=11)
+        ax.grid(axis="y", alpha=0.2)
+        _title(ax, "Missingness Dendrogram")
+
+        _style_axes(fig, ax)
         fig.tight_layout()
         return fig, ax

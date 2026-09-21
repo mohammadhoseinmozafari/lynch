@@ -37,10 +37,7 @@ class Analyzer(ABC):
     id : str
 
 
-    @abstractmethod
-    def analyze(self, ctx: AnalysisContext) -> ProfileNamespace:
-        """Performs analysis on models/datasets."""
-        pass
+
 
     @property
     def capability_name(self) -> str:

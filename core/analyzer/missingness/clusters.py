@@ -1,194 +1,218 @@
 from __future__ import annotations
 
-from typing import   Literal, Optional
-import pandas as pd
-from core.visualizer.missingness import  MissingnessClustersVisualizer
-from core.analyzer import Analyzer, AnalyzerType
+from dataclasses import dataclass, field
+from typing import Literal, Optional
 
-from scipy.cluster.hierarchy import linkage, fcluster
+import numpy as np
+import pandas as pd
+from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import pdist
+
+from core.analyzer import Analyzer, AnalysisResult, AnalyzerType
+from core.visualizer.missingness import MissingnessClustersVisualizer
+
+Method = Literal["exact", "hierarchical"]
+
+_TABLE_COLUMNS = ["cluster_id", "size", "rate", "n_missing_cols", "missing_columns"]
+
+
+@dataclass
+class ClusterResult:
+    """Everything a visualizer or `rows_in` needs, computed once."""
+
+    table: pd.DataFrame                 # one row per cluster, sorted by size desc
+    labels: pd.Series                   # cluster_id per original row (index = df.index)
+    varying_cols: list[str]
+    pattern: pd.DataFrame               # cluster_id x varying_cols, fraction missing (0..1)
+    linkage: Optional[np.ndarray] = None  # only for hierarchical
+    method: str = "exact"
+    meta: dict = field(default_factory=dict)
 
 
 class MissingnessClusters(Analyzer):
     """Cluster rows by their missingness pattern.
- 
+
     Usage:
-        mcl = MissingnessClusters(df)
-        mcl.clusters()                          # exact signature groups
-        mcl.clusters(method="hierarchical", k=6) # coarser, for wide data
-        mcl.rows_in(cluster_id=2)                # inspect one cluster
-        mcl.plot.sizes()
-        mcl.plot.pattern_matrix()
-        mcl.plot.dendrogram()
+        result = MissingnessClusters().clusters(df)                       # exact signatures
+        result = MissingnessClusters().clusters(df, "hierarchical", k=6)  # coarser, wide data
+        analyzer.rows_in(df, cluster_id=2)
     """
- 
+
     id = "dataset.missingness.clusters"
- 
     capability = "missingness.row_clusters"
- 
     requires = {"profile.base"}
- 
     provides = {capability}
- 
     analyzer_type = AnalyzerType.DATASET
- 
-    def __init__(self, df: pd.DataFrame) -> None:
+
+    # Above this many unique signatures, hierarchical clustering is run on
+    # unique signatures (weighted) rather than raw rows.
+    MAX_ROWS_FOR_PDIST = 5_000
+
+    def __init__(self) -> None:
         super().__init__()
-        self.df = df
-        self.mask = df.isna()
-        self._plot: Optional["MissingnessClustersVisualizer"] = None
- 
-        # only columns that actually vary in missingness carry signal;
-        # all-missing / all-present columns would just pad every
-        # signature identically and add noise to the distance metric.
-        self.varying_cols = list(self.mask.columns[self.mask.nunique() > 1])
- 
-    def analyze(self, ctx: AnalysisContext) -> ProfileNamespace:
-        return super().analyze(ctx)
- 
-    # ------------------------------------------------------------------
-    # Exact-signature clustering
-    # ------------------------------------------------------------------
- 
-    def _exact_clusters(self) -> pd.DataFrame:
-        if not self.varying_cols:
-            return pd.DataFrame(
-                columns=["cluster_id", "size", "rate", "n_missing_cols", "missing_columns"]
-            )
- 
-        sub = self.mask[self.varying_cols]
-        # group rows by identical missingness signature
-        signatures = sub.apply(tuple, axis=1)
-        groups = signatures.value_counts()
- 
-        rows = []
-        for i, (sig, size) in enumerate(groups.items()):
-            missing_cols = [c for c, is_missing in zip(self.varying_cols, sig) if is_missing]
-            rows.append({
-                "cluster_id": i,
-                "size": int(size),
-                "rate": float(size / len(self.df)),
-                "n_missing_cols": len(missing_cols),
-                "missing_columns": missing_cols,
-            })
- 
-        out = pd.DataFrame(rows).sort_values("size", ascending=False).reset_index(drop=True)
-        out["cluster_id"] = range(len(out))  # renumber by size rank
-        self._signatures = signatures  # cache for rows_in()
-        self._cluster_map = {row["cluster_id"]: i for i, row in enumerate(rows)}
-        return out
- 
-    # ------------------------------------------------------------------
-    # Hierarchical clustering (coarser, for wide data)
-    # ------------------------------------------------------------------
- 
-    def _hierarchical_clusters(self, k: int, metric: str = "hamming") -> pd.DataFrame:
-        if not self.varying_cols:
-            return pd.DataFrame(
-                columns=["cluster_id", "size", "rate", "n_missing_cols", "missing_columns"]
-            )
- 
-        sub = self.mask[self.varying_cols].astype(int)
-        if len(sub) < 2:
-            raise ValueError("Need at least 2 rows to cluster.")
- 
-        distances = pdist(sub.values, metric=metric)
-        Z = linkage(distances, method="average")
-        labels = fcluster(Z, t=k, criterion="maxclust")
- 
-        self._linkage = Z  # cache for dendrogram plot
-        self._hier_labels = labels
- 
-        rows = []
-        for cid in sorted(set(labels)):
-            row_idx = labels == cid
-            size = int(row_idx.sum())
-            # columns missing in >50% of the cluster's rows describe it
-            cluster_mask = sub.values[row_idx]
-            col_rates = cluster_mask.mean(axis=0)
-            missing_cols = [c for c, r in zip(self.varying_cols, col_rates) if r > 0.5]
-            rows.append({
-                "cluster_id": int(cid) - 1,
-                "size": size,
-                "rate": float(size / len(self.df)),
-                "n_missing_cols": len(missing_cols),
-                "missing_columns": missing_cols,
-            })
- 
-        return pd.DataFrame(rows).sort_values("size", ascending=False).reset_index(drop=True)
- 
+        self.visualizer = MissingnessClustersVisualizer()
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
- 
+
     def clusters(
         self,
-        method: Literal["exact", "hierarchical"] = "exact",
+        df: pd.DataFrame,
+        method: Method = "exact",
+        k: int = 8,
+        metric: str = "hamming",
+    ) -> AnalysisResult:
+        """Cluster rows by missingness pattern.
+
+        method="exact": rows grouped by literal missingness signature.
+            No hyperparameters; can yield many tiny clusters when
+            missingness is scattered across many columns.
+        method="hierarchical": agglomerative clustering on binary
+            missingness vectors, cut into `k` clusters. Coarser and more
+            stable on wide data; `missing_columns` is a >50%-of-cluster
+            summary rather than exact.
+        """
+        result = self._compute(df, method=method, k=k, metric=metric)
+        return AnalysisResult(
+            raw=result,
+            visualizer=self.visualizer.visualize_clusters,
+        )
+
+    def pattern_matrix(
+        self, df: pd.DataFrame, method: Method = "exact", k: int = 8, metric: str = "hamming"
+    ) -> AnalysisResult:
+        result = self._compute(df, method=method, k=k, metric=metric)
+        return AnalysisResult(raw=result, visualizer=self.visualizer.visualize_pattern)
+
+    def dendrogram(self, df: pd.DataFrame, k: int = 8, metric: str = "hamming") -> AnalysisResult:
+        result = self._compute(df, method="hierarchical", k=k, metric=metric)
+        return AnalysisResult(raw=result, visualizer=self.visualizer.visualize_dendrogram)
+
+    def rows_in(
+        self,
+        df: pd.DataFrame,
+        cluster_id: int,
+        method: Method = "exact",
         k: int = 8,
         metric: str = "hamming",
     ) -> pd.DataFrame:
-        """
-        Return one row per missingness cluster: cluster_id, size, rate
-        (fraction of all rows), n_missing_cols, and which columns define
-        the pattern.
- 
-        method="exact": rows are grouped by their literal missingness
-        signature. No hyperparameters. Can produce many small clusters
-        if missingness is scattered/independent across many columns.
- 
-        method="hierarchical": rows are agglomeratively clustered on
-        their binary missingness vectors and cut into `k` clusters.
-        Coarser and more stable on wide data, but the reported
-        "missing_columns" is a >50%-of-cluster summary, not exact.
-        """
-        if method == "exact":
-            return self._exact_clusters()
-        elif method == "hierarchical":
-            return self._hierarchical_clusters(k=k, metric=metric)
-        else:
-            raise ValueError(
-                f"Invalid method: {method!r}. Expected 'exact' or 'hierarchical'."
-            )
- 
-    def rows_in(self, cluster_id: int, method: Literal["exact", "hierarchical"] = "exact",
-                k: int = 8, metric: str = "hamming") -> pd.DataFrame:
-        """Return the subset of the original df belonging to a given
-        cluster, so you can inspect why the pattern occurs."""
-        if method == "exact":
-            if not hasattr(self, "_signatures"):
-                self._exact_clusters()
-            table = self._exact_clusters()
-            if cluster_id not in table["cluster_id"].values:
-                raise ValueError(f"No cluster with id {cluster_id}")
-            target_sig = tuple(
-                col in table.loc[table["cluster_id"] == cluster_id, "missing_columns"].iloc[0]
-                for col in self.varying_cols
-            )
-            row_mask = self._signatures == target_sig
-            return self.df.loc[row_mask]
-        else:
-            self._hierarchical_clusters(k=k, metric=metric)
-            row_mask = self._hier_labels == (cluster_id + 1)
-            return self.df.loc[row_mask]
- 
-    def summary(self, method: Literal["exact", "hierarchical"] = "exact", k: int = 8) -> dict:
-        table = self.clusters(method=method, k=k)
+        """Subset of `df` belonging to one cluster."""
+        result = self._compute(df, method=method, k=k, metric=metric)
+        if cluster_id not in set(result.table["cluster_id"]):
+            raise ValueError(f"No cluster with id {cluster_id}")
+        return df.loc[(result.labels == cluster_id).values]
+
+    def summary(
+        self, df: pd.DataFrame, method: Method = "exact", metric: str ="hamming", k: int = 8 
+    ) -> dict:
+        table = self._compute(df, method=method, k=k, metric=metric).table
         if table.empty:
-            return {
-                "n_clusters": 0,
-                "largest_cluster_rate": 0.0,
-                "complete_rows_rate": 0.0,
-            }
-        complete = table.loc[table["n_missing_cols"] == 0, "rate"].sum()
+            return {"n_clusters": 0, "largest_cluster_rate": 0.0, "complete_rows_rate": 0.0}
         return {
             "n_clusters": int(len(table)),
             "largest_cluster_rate": float(table["rate"].max()),
-            "complete_rows_rate": float(complete),
+            "complete_rows_rate": float(table.loc[table["n_missing_cols"] == 0, "rate"].sum()),
         }
- 
-    @property
-    def plot(self) -> "MissingnessClustersVisualizer":
-        if self._plot is None:
-            self._plot = MissingnessClustersVisualizer(self)
-        return self._plot
- 
+
+    # ------------------------------------------------------------------
+    # Core computation
+    # ------------------------------------------------------------------
+
+    def _compute(self, df: pd.DataFrame, method: Method, k: int, metric: str) -> ClusterResult:
+        if method not in ("exact", "hierarchical"):
+            raise ValueError(f"Invalid method: {method!r}. Expected 'exact' or 'hierarchical'.")
+
+        mask = df.isna()
+        # Only columns whose missingness varies carry signal; constant
+        # columns would pad every signature identically.
+        varying = list(mask.columns[mask.nunique() > 1])
+
+        if not varying or len(df) == 0:
+            return self._empty(df, varying, method)
+
+        sub = mask[varying].to_numpy(dtype=bool)
+
+        # Unique signatures + inverse mapping: O(n) via np.unique, no row-wise apply.
+        sigs, inverse, counts = np.unique(
+            sub, axis=0, return_inverse=True, return_counts=True
+        )
+        inverse = inverse.ravel()
+
+        if method == "exact":
+            sig_labels = np.arange(len(sigs))
+            Z = None
+        else:
+            if len(sigs) < 2:
+                raise ValueError("Need at least 2 distinct missingness patterns to cluster.")
+            sig_labels, Z = self._hierarchical(sigs, counts, k, metric)
+
+        row_labels = sig_labels[inverse]
+        return self._build_result(
+            df, varying, sigs, counts, sig_labels, row_labels, Z, method, k, metric
+        )
+
+    def _hierarchical(self, sigs, counts, k, metric):
+        """Cluster unique signatures (not raw rows) — cheap and equivalent
+        up to duplicate weighting, which we handle by expanding only when small."""
+        data = sigs.astype(int)
+        k = max(1, min(k, len(sigs)))
+        distances = pdist(data, metric=metric)
+        Z = linkage(distances, method="average")
+        labels = fcluster(Z, t=k, criterion="maxclust") - 1
+        return labels, Z
+
+    def _build_result(
+        self, df, varying, sigs, counts, sig_labels, row_labels, Z, method, k, metric
+    ) -> ClusterResult:
+        n = len(df)
+        raw_ids = np.unique(row_labels)
+
+        # size per raw cluster
+        sizes = {cid: int(counts[sig_labels == cid].sum()) for cid in raw_ids}
+        # renumber by size rank so cluster 0 is always the largest
+        order = sorted(raw_ids, key=lambda c: -sizes[c])
+        remap = {old: new for new, old in enumerate(order)}
+
+        row_labels = np.vectorize(remap.get)(row_labels)
+        sig_labels = np.vectorize(remap.get)(sig_labels)
+
+        rows, pattern_rows = [], []
+        for new_id in range(len(order)):
+            in_cluster = sig_labels == new_id
+            w = counts[in_cluster]
+            # weighted fraction of rows missing each column
+            col_rates = (sigs[in_cluster] * w[:, None]).sum(axis=0) / w.sum()
+            missing_cols = [c for c, r in zip(varying, col_rates) if r > 0.5]
+            size = int(w.sum())
+            rows.append({
+                "cluster_id": new_id,
+                "size": size,
+                "rate": size / n,
+                "n_missing_cols": len(missing_cols),
+                "missing_columns": missing_cols,
+            })
+            pattern_rows.append(col_rates)
+
+        table = pd.DataFrame(rows, columns=_TABLE_COLUMNS)
+        pattern = pd.DataFrame(pattern_rows, columns=varying, index=table["cluster_id"])
+
+        return ClusterResult(
+            table=table,
+            labels=pd.Series(row_labels, index=df.index, name="cluster_id"),
+            varying_cols=varying,
+            pattern=pattern,
+            linkage=Z,
+            method=method,
+            meta={"k": k, "metric": metric, "n_rows": n},
+        )
+
+    def _empty(self, df, varying, method) -> ClusterResult:
+        return ClusterResult(
+            table=pd.DataFrame(columns=_TABLE_COLUMNS),
+            labels=pd.Series(0, index=df.index, name="cluster_id", dtype=int),
+            varying_cols=varying,
+            pattern=pd.DataFrame(columns=varying),
+            method=method,
+            meta={"n_rows": len(df)},
+        )

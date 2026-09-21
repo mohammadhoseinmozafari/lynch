@@ -11,6 +11,6 @@ build/
 *.egg-info/
 .mypy_cache/
 .pytest_cache/
-
-core/case/domain/errors/holmz.code-workspace
+*.csv
+*.ipynb
 /__roadmap
